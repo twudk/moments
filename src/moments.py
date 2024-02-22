@@ -3,9 +3,7 @@ import datetime
 from typing import Optional, Tuple
 import pandas as pd
 import pandas_ta as ta
-from backtesting import Backtest, Strategy
-from backtesting.test import SMA
-from backtesting.lib import crossover
+from backtesting import Strategy
 
 
 def save_to_file(filename, data):
@@ -45,7 +43,7 @@ def days_to_target(
         o_target_profit: float,
         o_std_loss_limit: float,
         o_max_days: int,
-) -> Tuple[int, float, float, datetime.date]:
+) -> Tuple[int, float, float, datetime.date, bool]:
     """
     Calculate the number of days until the stock reaches the target profit or loss limit,
     up to a maximum of max_days. Also returns the stock price and the last day of investment on that day.
@@ -75,19 +73,23 @@ def days_to_target(
             else None
 
         if current_target_profit is None or current_stop_limit is None or current_max_days is None:
-            return i, accumulated_return, current_price, current_date
+            return i, accumulated_return, current_price, current_date, False
 
-        if (accumulated_return >= current_target_profit
-                or accumulated_return <= current_stop_limit
-                or i >= current_max_days):
-            return i, accumulated_return, current_price, current_date
+        if accumulated_return >= current_target_profit:
+            return i, accumulated_return, current_price, current_date, False
+
+        if accumulated_return <= current_stop_limit:
+            return i, accumulated_return, current_price, current_date, True
+
+        if i >= current_max_days:
+            return i, accumulated_return, current_price, current_date, False
 
         r_max_days = i
         r_final_return = accumulated_return
         r_final_price = current_price
         r_final_date = current_date
 
-    return r_max_days, r_final_return, r_final_price, r_final_date
+    return r_max_days, r_final_return, r_final_price, r_final_date, False
 
 
 def calculate_target_days(
@@ -108,6 +110,7 @@ def calculate_target_days(
         "stock_price": [],
         "last_investment_day": [],
         "last_investment_day_next": [],
+        "excessive_loss": [],
     }
 
     for start_index in range(len(stock_data) - 1):
@@ -116,6 +119,7 @@ def calculate_target_days(
             investment_return,
             stock_price,
             last_investment_day,
+            excessive_loss
         ) = days_to_target(stock_data, start_index, o_target_profit, o_std_loss_limit, o_max_days)
 
         # Determine the next investment day (the day after last_investment_day)
@@ -136,6 +140,9 @@ def calculate_target_days(
         results["last_investment_day_next"].append(
             str(last_investment_day_next) if investment_return < 0 else None
         )
+        results["excessive_loss"].append(
+            str("Y") if excessive_loss else "N"
+        )
 
     return pd.DataFrame(results)
 
@@ -153,13 +160,13 @@ def calculate_last_investment_day_extended(
     results_df = calculate_target_days(stock_data, o_profit_target, o_stop_limit, o_max_days)
 
     # Extract the last investment days
-    last_investment_days = set(results_df["last_investment_day"].dropna())
+    last_investment_days = set(results_df[results_df['excessive_loss'] == 'Y']["last_investment_day"].dropna())
 
     # Extract the date sequence from results_df
     date_sequence = results_df["date"]
 
     # Check for the conditions and filter the dates
-    continue_loss = set()
+    sleep_days = set()
     for date in last_investment_days:
         if date in date_sequence.values:
             date_index = date_sequence[date_sequence == date].index[0]
@@ -168,16 +175,13 @@ def calculate_last_investment_day_extended(
                 else None
             if sleep_after_loss is None:
                 return set(), set()
-            if date_index + sleep_after_loss <= len(date_sequence):
-                next_dates = date_sequence[date_index: date_index + sleep_after_loss]
-                for nd in next_dates:
-                    continue_loss.add(nd)
-            else:
-                next_dates = date_sequence[date_index: len(date_sequence)]
-                for nd in next_dates:
-                    continue_loss.add(nd)
+            sleep_dates = date_sequence[date_index: date_index + sleep_after_loss] \
+                if date_index + sleep_after_loss <= len(date_sequence) \
+                else date_sequence[date_index: len(date_sequence)]
+            for nd in sleep_dates:
+                sleep_days.add(nd)
 
-    return last_investment_days, continue_loss
+    return last_investment_days, sleep_days
 
 
 def get_subrange_of_days(
@@ -251,6 +255,12 @@ class MyStrategy(Strategy):
             self.o_max_days,
             self.o_sleep_after_loss,
         )
+        last_inv_list = list(self.last_investment_day)
+        last_inv_list.sort(reverse=True)
+        continue_loss = list(self.continue_loss)
+        continue_loss.sort(reverse=True)
+        print("Exit days:" + str(last_inv_list[:10]))
+        print("Coll-down days:" + str(continue_loss[:10]))
 
     def next(self):
         super().next()
@@ -271,6 +281,8 @@ class MyStrategy(Strategy):
         current_date = self.data.index[-1].date()
         current_date_str = str(current_date)
 
+        print(current_date_str)
+
         target_profit = self.o_profit_target / 100 if self.o_profit_target is not None \
             else self.data.target_profit[-1] / 100 if 'target_profit' in self.data.df.columns \
             else None
@@ -285,10 +297,10 @@ class MyStrategy(Strategy):
             return
 
         if self.position:
-            # print(f'''{current_date} {target_profit} {stop_limit} {max_days} {current_holding_pl}''')
+            print(f'''{current_date} {target_profit} {stop_limit} {max_days} {current_holding_pl}''')
             if current_holding_pl <= stop_limit:
-                # print(f'''exit due to max loss at {current_date}: {self.entry_price}
-                #     -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
+                print(f'''exit due to max loss at {current_date}: {self.entry_price}
+                    -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
                 self.position.close()
                 self.entry_price = None
                 self.days_held = 0
@@ -298,8 +310,8 @@ class MyStrategy(Strategy):
                     or self.position.pl_pct >= target_profit
             ) and (current_date_str in self.last_investment_day
                    or current_date_str in self.continue_loss):
-                # print(f'''exit due to max days at {current_date}: {self.entry_price}
-                #     -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
+                print(f'''exit due to max days at {current_date}: {self.entry_price}
+                    -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
                 self.position.close()
                 self.entry_price = None
                 self.days_held = 0
@@ -313,7 +325,7 @@ class MyStrategy(Strategy):
                     and self.days_elapse > max_days + 5
                     and (self.up_trend_macd or self.skip_trend)
             ):
-                # print(f'''buy at {current_date}''')
+                print(f'''buy at {current_date}''')
                 self.buy()
                 self.days_held = self.days_held + 1
                 self.entry_price = current_price
