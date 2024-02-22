@@ -1,5 +1,5 @@
 import datetime
-import src.strategy.moments as f
+import strategy.moments as f
 from backtesting import Backtest
 
 optimize_on = 'SQN'

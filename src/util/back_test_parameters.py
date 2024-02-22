@@ -1,10 +1,10 @@
 import datetime
-import src.strategy.moments as f
+import strategy.moments as f
 from backtesting import Backtest
 import pandas as pd
 import os
 
-ticker = "XLE"
+ticker = "XLK"
 walk_back_in_days = 365 * 0
 total_days_in_range = 365 * 4
 max_stop_limit = 5
