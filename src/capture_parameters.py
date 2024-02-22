@@ -13,7 +13,7 @@ cash = 1000000
 optimize_on = 'SQN'
 sample_step = 1
 
-output_dir = './output'
+output_dir = '../data/output'
 
 for ticker in tickers:
 

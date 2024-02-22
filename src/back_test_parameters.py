@@ -19,7 +19,7 @@ prices_df = f.download_stock_data(ticker, end_date - datetime.timedelta(days=tot
 vol = prices_df['Close'].std() / prices_df['Close'].mean()
 
 # Load parameters sheet
-parameters_df = pd.read_csv('../../data/input/parameters_%s.csv' % ticker)
+parameters_df = pd.read_csv('../data/input/parameters_%s.csv' % ticker)
 parameters_df['start_date'] = pd.to_datetime(parameters_df['start_date'])
 parameters_df['end_date'] = pd.to_datetime(parameters_df['end_date']) + pd.Timedelta(days=1)
 parameters_df['sleep_after_loss'] = parameters_df['sleep_after_loss'].round().astype(int)
