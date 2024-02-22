@@ -1,5 +1,5 @@
 import datetime
-import strategy.moments as f
+import moments as f
 from backtesting import Backtest
 import pandas as pd
 import os
@@ -51,7 +51,7 @@ stock_data = f.get_subrange_of_days(price_with_parameters_df, start_date_x, end_
 
 
 # with ctx.change_dir('../../report'):
-os.chdir('../../report')
+os.chdir('../report')
 backtest = Backtest(stock_data, f.MyStrategy, cash=CASH, exclusive_orders=True, trade_on_close=True)
 stats = backtest.run(n1=19, n2=39, vol=vol * 100, skip_trend=False)
 
