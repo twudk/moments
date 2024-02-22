@@ -287,8 +287,8 @@ class MyStrategy(Strategy):
         if self.position:
             # print(f'''{current_date} {target_profit} {stop_limit} {max_days} {current_holding_pl}''')
             if current_holding_pl <= stop_limit:
-                print(f'''exit due to max loss at {current_date}: {self.entry_price}
-                    -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
+                # print(f'''exit due to max loss at {current_date}: {self.entry_price}
+                #     -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
                 self.position.close()
                 self.entry_price = None
                 self.days_held = 0
@@ -298,8 +298,8 @@ class MyStrategy(Strategy):
                     or self.position.pl_pct >= target_profit
             ) and (current_date_str in self.last_investment_day
                    or current_date_str in self.continue_loss):
-                print(f'''exit due to max days at {current_date}: {self.entry_price}
-                    -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
+                # print(f'''exit due to max days at {current_date}: {self.entry_price}
+                #     -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
                 self.position.close()
                 self.entry_price = None
                 self.days_held = 0
