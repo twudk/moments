@@ -1,5 +1,7 @@
+import sys
+import os
 from datetime import datetime
-from kafka import KafkaConsumer, KafkaProducer, TopicPartition
+from kafka import KafkaConsumer, KafkaProducer
 import json
 import moments as f
 from backtesting import Backtest
@@ -10,9 +12,15 @@ optimize_on = 'SQN'
 sample_step = 1
 
 # Kafka configuration
-kafka_broker_address = 'ws.twu.dk:9092'
+kafka_broker_address = os.getenv("KAFKA_BROKER_ADDRESS")
 kafka_topic_opt_request = 'opt_request'
 kafka_topic_opt_response = 'opt_response'
+
+if kafka_broker_address is None:
+    print("Kafka broker address is empty, set env variable KAFKA_BROKER_ADDRESS")
+    sys.exit()
+else:
+    print("Kafka broker address: " + kafka_broker_address)
 
 # Create a Kafka consumer instance
 consumer = KafkaConsumer(
@@ -29,15 +37,6 @@ producer = KafkaProducer(
     value_serializer=lambda v: json.dumps(v).encode('utf-8'),  # Serialize the message to JSON formatted string
     acks='all'
 )
-
-# Assign the consumer to a specific topic and partition
-partition = 0  # Specify the partition you want to consume from (assuming single partition for simplicity)
-topic_partition = TopicPartition(kafka_topic_opt_request, partition)
-consumer.assign([topic_partition])
-
-# Specify the offset from which to start consuming
-# offset = 10  # Change this to the offset from which you want to consume
-# consumer.seek(topic_partition, offset)
 
 # Consume messages
 try:

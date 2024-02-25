@@ -1,15 +1,22 @@
+import sys
+import os
 import json
-
 from kafka import KafkaProducer
-
 import moments as f
 import logging
 
 logging.basicConfig(level=logging.DEBUG)
 
-# Configuration for Kafka Producer
-kafka_broker_address = 'ws.twu.dk:9092'  # Change this to your Kafka broker address
-kafka_topic = 'opt_request'  # Change this to your Kafka topic
+# Kafka configuration
+kafka_broker_address = os.getenv("KAFKA_BROKER_ADDRESS")
+kafka_topic_opt_request = 'opt_request'
+kafka_topic_opt_response = 'opt_response'
+
+if kafka_broker_address is None:
+    print("Kafka broker address is empty, set env variable KAFKA_BROKER_ADDRESS")
+    sys.exit()
+else:
+    print("Kafka broker address: " + kafka_broker_address)
 
 # Create a Kafka producer instance
 producer = KafkaProducer(
@@ -29,7 +36,7 @@ def send_request(batch_id, request_id, symbol, start_date, end_date):
     }
     # Send the message
     try:
-        producer.send(kafka_topic, value=message)
+        producer.send(kafka_topic_opt_request, value=message)
     except Exception as e:
         print(f"Failed to send message: {e}")
 
@@ -38,7 +45,7 @@ def send_request(batch_id, request_id, symbol, start_date, end_date):
 if __name__ == '__main__':
     batch_id = f.generate_random_uuid()
 
-    tickers = ["SPY"]
+    tickers = ["XLK"]
 
     total_days_in_range = 365 * 1  # x years
     unit_in_days = 7  # Capture every 7 days
