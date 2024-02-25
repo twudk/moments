@@ -4,9 +4,9 @@ from backtesting import Backtest
 import pandas as pd
 import os
 
-ticker = "SPY"
+ticker = "XLY"
 walk_back_in_days = 365 * 0
-total_days_in_range = 365 * 1
+total_days_in_range = 365 * 2
 max_stop_limit = 5
 ROUNDING_DIGITS = 4
 CASH = 1000000
@@ -50,11 +50,22 @@ stock_data = f.get_subrange_of_days(price_with_parameters_df, start_date_x, end_
 # Back test
 os.chdir('../report')
 backtest = Backtest(stock_data, f.MyStrategy, cash=CASH, exclusive_orders=True, trade_on_close=True)
-stats = backtest.run(n1=19, n2=39, macd_threshold=30, skip_trend=False)
 
-# stats = backtest.run(n1=5, n2=35, vol=5, skip_trend=False)
+optimize_on = 'SQN'
+opt_stats_x, heatmap = backtest.optimize(
+    n1=[19],
+    n2=[39],
+    macd_threshold=range(10, 80, 10),
+    skip_trend=[False],
+    maximize=optimize_on,
+    return_heatmap=True
+)
 
+macd_threshold = opt_stats_x._strategy.macd_threshold
+
+print(opt_stats_x)
+print(macd_threshold)
+print(opt_stats_x._trades)
+
+stats = backtest.run(n1=19, n2=39, macd_threshold=macd_threshold, skip_trend=False)
 backtest.plot()
-print(stats)
-print(stats._trades)
-print("Vol=" + str(vol))

@@ -4,6 +4,13 @@ from typing import Optional, Tuple
 import pandas as pd
 import pandas_ta as ta
 from backtesting import Strategy
+import uuid
+
+
+def generate_random_uuid():
+    # Generate a random UUID (UUID4)
+    random_uuid = uuid.uuid4()
+    return str(random_uuid)
 
 
 def save_to_file(filename, data):
@@ -223,10 +230,9 @@ class MyStrategy(Strategy):
     entry_price = None
 
     skip_trend = True
-
-    n1 = 12
-    n2 = 26
-    vol = 9
+    n1 = None
+    n2 = None
+    macd_threshold = None
     up_trend_macd = None
 
     trading_start_date = datetime.date.today()
@@ -234,7 +240,8 @@ class MyStrategy(Strategy):
     def init(self):
         super().init()
 
-        self.macd = self.I(ta.macd, pd.Series(self.data.Close), self.n1, self.n2)
+        if not self.skip_trend:
+            self.macd = self.I(ta.macd, pd.Series(self.data.Close), self.n1, self.n2)
 
         self.days_elapse = 0
         self.days_held = 0
@@ -255,24 +262,26 @@ class MyStrategy(Strategy):
             self.o_max_days,
             self.o_sleep_after_loss,
         )
-        last_inv_list = list(self.last_investment_day)
-        last_inv_list.sort(reverse=True)
-        continue_loss = list(self.continue_loss)
-        continue_loss.sort(reverse=True)
-        print("Exit days:" + str(last_inv_list[:10]))
-        print("Coll-down days:" + str(continue_loss[:10]))
+        # last_inv_list = list(self.last_investment_day)
+        # last_inv_list.sort(reverse=True)
+        # continue_loss = list(self.continue_loss)
+        # continue_loss.sort(reverse=True)
+        # print("Exit days:" + str(last_inv_list[:10]))
+        # print("Coll-down days:" + str(continue_loss[:10]))
 
     def next(self):
         super().next()
 
-        macd_threshold = self.vol / 100
-        if self.macd[1][-1] > macd_threshold:
-            self.up_trend_macd = True
-        else:
-            self.up_trend_macd = False
+        close = self.data.Close[-1]
+
+        if not self.skip_trend:
+            if self.macd[1][-1] > self.macd_threshold / 100:
+                self.up_trend_macd = True
+            else:
+                self.up_trend_macd = False
 
         self.days_elapse = self.days_elapse + 1
-        current_price = self.data.Close[-1]
+        current_price = close
         current_holding_pl = (
             (current_price - self.entry_price) / self.entry_price
             if current_price is not None and self.entry_price
@@ -281,7 +290,7 @@ class MyStrategy(Strategy):
         current_date = self.data.index[-1].date()
         current_date_str = str(current_date)
 
-        print(current_date_str)
+        # print(current_date_str)
 
         target_profit = self.o_profit_target / 100 if self.o_profit_target is not None \
             else self.data.target_profit[-1] / 100 if 'target_profit' in self.data.df.columns \
@@ -297,10 +306,10 @@ class MyStrategy(Strategy):
             return
 
         if self.position:
-            print(f'''{current_date} {target_profit} {stop_limit} {max_days} {current_holding_pl}''')
+            # print(f'''{current_date} {target_profit} {stop_limit} {max_days} {current_holding_pl}''')
             if current_holding_pl <= stop_limit:
-                print(f'''exit due to max loss at {current_date}: {self.entry_price}
-                    -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
+                # print(f'''exit due to max loss at {current_date}: {self.entry_price}
+                #     -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
                 self.position.close()
                 self.entry_price = None
                 self.days_held = 0
@@ -310,8 +319,8 @@ class MyStrategy(Strategy):
                     or self.position.pl_pct >= target_profit
             ) and (current_date_str in self.last_investment_day
                    or current_date_str in self.continue_loss):
-                print(f'''exit due to max days at {current_date}: {self.entry_price}
-                    -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
+                # print(f'''exit due to max days at {current_date}: {self.entry_price}
+                #     -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
                 self.position.close()
                 self.entry_price = None
                 self.days_held = 0
@@ -325,7 +334,7 @@ class MyStrategy(Strategy):
                     and self.days_elapse > max_days + 5
                     and (self.up_trend_macd or self.skip_trend)
             ):
-                print(f'''buy at {current_date}''')
+                # print(f'''buy at {current_date}''')
                 self.buy()
                 self.days_held = self.days_held + 1
                 self.entry_price = current_price

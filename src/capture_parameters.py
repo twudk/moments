@@ -22,8 +22,8 @@ for ticker in tickers:
     output_file_parameter = '%s/parameters_%s.csv' % (output_dir, ticker)
     for offset in range(0, int((total_days_in_range - walk_back_in_days) / unit_in_days) - 1):
         try:
-            start_date_x, end_date_x = f.get_start_end_date(unit_in_days * offset, walk_back_in_days)
-            stock_data = f.get_subrange_of_days(data, start_date_x, end_date_x)
+            start_date, end_date = f.get_start_end_date(unit_in_days * offset, walk_back_in_days)
+            stock_data = f.get_subrange_of_days(data, start_date, end_date)
             vol = stock_data['Close'].std()
             backtest_x = Backtest(stock_data, f.MyStrategy, cash=cash, exclusive_orders=True, trade_on_close=True)
 
@@ -32,9 +32,6 @@ for ticker in tickers:
                 o_stop_limit=range(2, 5, sample_step),
                 o_max_days=range(16, 24, sample_step),
                 o_sleep_after_loss=range(2, 10, sample_step),
-                n1=[15],
-                n2=[30],
-                vol=[30],
                 maximize=optimize_on,
                 return_heatmap=True
             )
@@ -44,7 +41,7 @@ for ticker in tickers:
             bh_x = opt_stats_x['Buy & Hold Return [%]']
 
             f.save_to_file(output_file_parameter,
-                           f"{ticker},{offset},{start_date_x},{end_date_x},{opt_stats_x._strategy.o_profit_target},{opt_stats_x._strategy.o_stop_limit},{opt_stats_x._strategy.o_sleep_after_loss},{opt_stats_x._strategy.o_max_days},{ret_x},{bh_x}")
+                           f"{ticker},{offset},{start_date},{end_date},{opt_stats_x._strategy.o_profit_target},{opt_stats_x._strategy.o_stop_limit},{opt_stats_x._strategy.o_sleep_after_loss},{opt_stats_x._strategy.o_max_days},{ret_x},{bh_x}")
 
         except Exception as e:
             print(e)
