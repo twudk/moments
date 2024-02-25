@@ -30,7 +30,7 @@ def send_request(batch_id, request_id, symbol, start_date, end_date):
         'request_id': request_id,
         'symbol': symbol,
         'optimize_on': 'SQN',
-        'sampling_step': 3,
+        'sampling_step': 1,
         'start_date': start_date.isoformat(),
         'end_date': end_date.isoformat()
     }
