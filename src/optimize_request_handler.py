@@ -24,6 +24,7 @@ else:
 
 # Create a Kafka consumer instance
 consumer = KafkaConsumer(
+    kafka_topic_opt_request,
     bootstrap_servers=[kafka_broker_address],
     auto_offset_reset='earliest',  # Start reading at the earliest message if the specified offset is invalid
     enable_auto_commit=True,  # Automatically commit offsets
