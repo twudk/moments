@@ -3,7 +3,8 @@ import os
 import json
 from kafka import KafkaProducer
 import moments as f
-import datetime
+from datetime import datetime
+from datetime import timedelta
 
 # Kafka configuration
 kafka_broker_address = os.getenv("KAFKA_BROKER_ADDRESS")
@@ -24,15 +25,15 @@ producer = KafkaProducer(
 )
 
 
-def send_request(batch_id, request_id, symbol, start_date, end_date):
+def send_request(r_batch_id, r_request_id, r_symbol, r_start_date, r_end_date):
     message = {
-        'batch_id': batch_id,
-        'request_id': request_id,
-        'symbol': symbol,
+        'batch_id': r_batch_id,
+        'request_id': r_request_id,
+        'symbol': r_symbol,
         'optimize_on': 'SQN',
         'sampling_step': 1,
-        'start_date': start_date.isoformat(),
-        'end_date': end_date.isoformat()
+        'start_date': r_start_date.isoformat(),
+        'end_date': r_end_date.isoformat()
     }
     # Send the message
     try:
@@ -45,20 +46,21 @@ def send_request(batch_id, request_id, symbol, start_date, end_date):
 if __name__ == '__main__':
     batch_id = f.generate_random_uuid()
 
+    tickers = ["XLK"]
     start_date = '2023-01-01'
     end_date = '2023-03-31'
-    sampling_frequency = 5
 
-    tickers = ["XLK"]
-
-    total_days_in_range = 365 * 2  # x years
+    sampling_frequency = 5  # Sample every 5 days
     walk_back_in_days = 30 * 6  # Walk back 6 months
 
     for ticker in tickers:
-        stock_data = f.download_stock_data(ticker, start_date, end_date)
+        stock_data = f.download_stock_data(
+            ticker,
+            datetime.strptime(start_date, '%Y-%m-%d').date(),
+            datetime.strptime(end_date, '%Y-%m-%d').date())
 
-        for sampling_end_date in stock_data.iloc[::5].index.date:
-            sampling_start_date = sampling_end_date - datetime.timedelta(days=30 * 6)
+        for sampling_end_date in stock_data.iloc[::sampling_frequency].index.date:
+            sampling_start_date = sampling_end_date - timedelta(days=walk_back_in_days)
             try:
                 send_request(batch_id, f.generate_random_uuid(), ticker, sampling_start_date, sampling_end_date)
             except Exception as e:
