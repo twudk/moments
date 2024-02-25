@@ -5,11 +5,9 @@ from kafka import KafkaConsumer, KafkaProducer
 import json
 import moments as f
 from backtesting import Backtest
+import socket
 
-rounding_digits = 4
-cash = 1000000
-optimize_on = 'SQN'
-sample_step = 1
+hostname = socket.gethostname()
 
 # Kafka configuration
 kafka_broker_address = os.getenv("KAFKA_BROKER_ADDRESS")
@@ -27,7 +25,7 @@ consumer = KafkaConsumer(
     kafka_topic_opt_request,
     bootstrap_servers=[kafka_broker_address],
     auto_offset_reset='earliest',  # Start reading at the earliest message if the specified offset is invalid
-    enable_auto_commit=True,  # Automatically commit offsets
+    enable_auto_commit=False,  # Automatically commit offsets
     group_id='request-handler-group',  # Consumer group ID
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))  # Deserialize the message from JSON
 )
@@ -45,6 +43,8 @@ try:
         batch_id = message.value['batch_id']
         request_id = message.value['request_id']
         symbol = message.value['symbol']
+        optimize_on = message.value['optimize_on']
+        sampling_step = message.value['sampling_step']
         start_date = datetime.fromisoformat(message.value['start_date'])
         end_date = datetime.fromisoformat(message.value['end_date'])
 
@@ -53,13 +53,13 @@ try:
 
         try:
             stock_data = f.download_stock_data(symbol, start_date, end_date)
-            backtest_x = Backtest(stock_data, f.MyStrategy, cash=cash, exclusive_orders=True, trade_on_close=True)
+            backtest_x = Backtest(stock_data, f.MyStrategy, cash=1000000, exclusive_orders=True, trade_on_close=True)
 
             opt_stats_x, heatmap = backtest_x.optimize(
-                o_profit_target=range(2, 10, sample_step),
-                o_stop_limit=range(2, 5, sample_step),
-                o_max_days=range(16, 24, sample_step),
-                o_sleep_after_loss=range(2, 10, sample_step),
+                o_profit_target=range(2, 10, sampling_step),
+                o_stop_limit=range(2, 5, sampling_step),
+                o_max_days=range(16, 24, sampling_step),
+                o_sleep_after_loss=range(2, 10, sampling_step),
                 maximize=optimize_on,
                 return_heatmap=True
             )
@@ -85,6 +85,7 @@ try:
                 'buy_and_hold_return_pct': buy_and_hold_return_pct,
                 'max_draw_down': max_draw_down,
                 'sqn': sqn,
+                'handler_host': hostname
             }
 
             # Send the message
@@ -95,6 +96,8 @@ try:
                 print(f"Failed to send message: {e}")
 
             print(message)
+
+            consumer.commit_async()
 
         except Exception as e:
             print(e)

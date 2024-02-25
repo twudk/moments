@@ -3,9 +3,6 @@ import os
 import json
 from kafka import KafkaProducer
 import moments as f
-import logging
-
-logging.basicConfig(level=logging.DEBUG)
 
 # Kafka configuration
 kafka_broker_address = os.getenv("KAFKA_BROKER_ADDRESS")
@@ -31,6 +28,8 @@ def send_request(batch_id, request_id, symbol, start_date, end_date):
         'batch_id': batch_id,
         'request_id': request_id,
         'symbol': symbol,
+        'optimize_on': 'SQN',
+        'sampling_step': 3,
         'start_date': start_date.isoformat(),
         'end_date': end_date.isoformat()
     }
@@ -47,7 +46,7 @@ if __name__ == '__main__':
 
     tickers = ["XLK"]
 
-    total_days_in_range = 365 * 1  # x years
+    total_days_in_range = 365 * 2  # x years
     unit_in_days = 7  # Capture every 7 days
     walk_back_in_days = 30 * 6  # Walk back 6 months
 
