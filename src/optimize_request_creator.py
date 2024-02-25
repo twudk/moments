@@ -3,6 +3,7 @@ import os
 import json
 from kafka import KafkaProducer
 import moments as f
+import datetime
 
 # Kafka configuration
 kafka_broker_address = os.getenv("KAFKA_BROKER_ADDRESS")
@@ -44,17 +45,22 @@ def send_request(batch_id, request_id, symbol, start_date, end_date):
 if __name__ == '__main__':
     batch_id = f.generate_random_uuid()
 
+    start_date = '2023-01-01'
+    end_date = '2023-03-31'
+    sampling_frequency = 5
+
     tickers = ["XLK"]
 
     total_days_in_range = 365 * 2  # x years
-    unit_in_days = 7  # Capture every 7 days
     walk_back_in_days = 30 * 6  # Walk back 6 months
 
     for ticker in tickers:
-        for offset in range(0, int((total_days_in_range - walk_back_in_days) / unit_in_days) - 1):
+        stock_data = f.download_stock_data(ticker, start_date, end_date)
+
+        for sampling_end_date in stock_data.iloc[::5].index.date:
+            sampling_start_date = sampling_end_date - datetime.timedelta(days=30 * 6)
             try:
-                start_date, end_date = f.get_start_end_date(unit_in_days * offset, walk_back_in_days)
-                send_request(batch_id, f.generate_random_uuid(), ticker, start_date, end_date)
+                send_request(batch_id, f.generate_random_uuid(), ticker, sampling_start_date, sampling_end_date)
             except Exception as e:
                 print(e)
 
