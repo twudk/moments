@@ -47,8 +47,8 @@ if __name__ == '__main__':
     batch_id = f.generate_random_uuid()
 
     tickers = ["XLK"]
-    start_date = '2023-01-01'
-    end_date = '2023-03-31'
+    start_date = '2022-01-01'
+    end_date = '2024-02-26'
 
     sampling_frequency = 5  # Sample every 5 days
     walk_back_in_days = 30 * 6  # Walk back 6 months
