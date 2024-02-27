@@ -46,14 +46,15 @@ def send_request(r_batch_id, r_request_id, r_symbol, r_start_date, r_end_date):
 if __name__ == '__main__':
     batch_id = f.generate_random_uuid()
 
-    tickers = ["XLK"]
-    start_date = '2022-01-01'
+    tickers_us_sectors = ["XLF", "XLI", "XLV", "XLC", "XLK", "XLB", "XLRE", "XLY", "XLP", "XLE", "XLU"]
+    tickers_us_industries = ["SMH", "ITB", "JETS", "FDN", "XRT", "IBB", "PHO", "IGV", "KIE", "AMLP", "KRE"]
+    start_date = '2015-01-01'
     end_date = '2024-02-26'
 
     sampling_frequency = 5  # Sample every 5 days
     walk_back_in_days = 30 * 6  # Walk back 6 months
 
-    for ticker in tickers:
+    for ticker in tickers_us_sectors + tickers_us_industries:
         stock_data = f.download_stock_data(
             ticker,
             datetime.strptime(start_date, '%Y-%m-%d').date(),

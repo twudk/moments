@@ -27,6 +27,8 @@ consumer = KafkaConsumer(
     auto_offset_reset='earliest',  # Start reading at the earliest message if the specified offset is invalid
     enable_auto_commit=False,  # Automatically commit offsets
     group_id='request-handler-group',  # Consumer group ID
+    session_timeout_ms=304999,
+    max_poll_interval_ms=304999,
     value_deserializer=lambda x: json.loads(x.decode('utf-8'))  # Deserialize the message from JSON
 )
 

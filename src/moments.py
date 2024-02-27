@@ -70,7 +70,7 @@ def days_to_target(
         accumulated_return = (current_price - start_price) / start_price
 
         current_target_profit = o_target_profit / 100 if o_target_profit is not None \
-            else stock_data.iloc[index_i]["target_profit"] / 100 if "target_profit" in stock_data.columns \
+            else stock_data.iloc[index_i]["profit_target"] / 100 if "profit_target" in stock_data.columns \
             else None
         current_stop_limit = -o_std_loss_limit / 100 if o_std_loss_limit is not None \
             else - stock_data.iloc[index_i]["stop_limit"] / 100 if "stop_limit" in stock_data.columns \
@@ -293,7 +293,7 @@ class MyStrategy(Strategy):
         # print(current_date_str)
 
         target_profit = self.o_profit_target / 100 if self.o_profit_target is not None \
-            else self.data.target_profit[-1] / 100 if 'target_profit' in self.data.df.columns \
+            else self.data.profit_target[-1] / 100 if 'profit_target' in self.data.df.columns \
             else None
         stop_limit = -self.o_stop_limit / 100 if self.o_stop_limit is not None \
             else -self.data.stop_limit[-1] / 100 if 'stop_limit' in self.data.df.columns \
