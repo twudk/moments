@@ -4,7 +4,7 @@ from backtesting import Backtest
 import pandas as pd
 import os
 
-ticker = "FDN"
+ticker = "SMH"
 walk_back_in_days = 365 * 0
 total_days_in_range = 365 * 2
 max_stop_limit = 5

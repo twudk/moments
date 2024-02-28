@@ -4,7 +4,7 @@ from backtesting import Backtest
 import pandas as pd
 import os
 
-ticker = "XLC"
+ticker = "PHO"
 walk_back_in_days = 365 * 0
 total_days_in_range = 365 * 2
 max_stop_limit = 5
@@ -53,11 +53,11 @@ stock_data = f.get_subrange_of_days(price_with_parameters_df, start_date_x, end_
 os.chdir('../report')
 backtest = Backtest(stock_data, f.MyStrategy, cash=CASH, exclusive_orders=True, trade_on_close=True)
 
-optimize_on = 'SQN'
+optimize_on = 'Return [%]'
 opt_stats_x, heatmap = backtest.optimize(
     n1=[19],
     n2=[39],
-    macd_threshold=range(0, 80, 10),
+    macd_threshold=range(0, 60, 10),
     skip_trend=[True, False],
     maximize=optimize_on,
     return_heatmap=True

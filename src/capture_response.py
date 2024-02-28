@@ -43,11 +43,8 @@ output_dir = '../data/output'
 for message in consumer:
     print(f"Received message: {counter} {message.partition} - {message.offset} - {message.value}")
     batch_id = message.value['batch_id']
-    if batch_id in ('277d15b3-ecdb-46c4-99d1-86fb19401e27', '5e050c38-be1b-41d4-872d-ffea12a00414',
-                    '937bb270-3a18-49e0-af4b-6b72142ba201', 'ac23ec15-5108-4794-90c8-5d2b30cd6486'):
-        continue
     symbol = message.value['symbol']
-    output_file = '%s/parameters_v2_%s.csv' % (output_dir, symbol)
+    output_file = '%s/parameters_v2_%s.csv' % (output_dir, '')
     if not os.path.exists(output_file):
         append_to_csv(output_file, header)
     row = [message.value[key] for key in header]

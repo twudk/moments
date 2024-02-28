@@ -1,0 +1,5 @@
+services:
+  moments:
+    image: tawu04/moments:latest
+    environment:
+      KAFKA_BROKER_ADDRESS: "ws.twu.dk:29092"
