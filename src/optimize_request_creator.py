@@ -48,13 +48,13 @@ if __name__ == '__main__':
 
     tickers_us_sectors = ["XLF", "XLI", "XLV", "XLC", "XLK", "XLB", "XLRE", "XLY", "XLP", "XLE", "XLU"]
     tickers_us_industries = ["SMH", "ITB", "JETS", "FDN", "XRT", "IBB", "PHO", "IGV", "KIE", "AMLP", "KRE"]
-    start_date = '2015-01-01'
+    start_date = '2024-01-01'
     end_date = '2024-02-26'
 
     sampling_frequency = 5  # Sample every 5 days
     walk_back_in_days = 30 * 6  # Walk back 6 months
 
-    for ticker in ['SPY']:
+    for ticker in ['XLF']:
         stock_data = f.download_stock_data(
             ticker,
             datetime.strptime(start_date, '%Y-%m-%d').date(),

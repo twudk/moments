@@ -4,10 +4,18 @@ from datetime import datetime
 from kafka import KafkaConsumer, KafkaProducer
 import json
 import moments as f
+import dao as dao
 from backtesting import Backtest
 import socket
 
 hostname = socket.gethostname()
+
+# Mysql
+host = os.getenv("MYSQL_ADDRESS")
+port = int(os.getenv("MYSQL_PORT"))
+db = os.getenv("MYSQL_DB")
+user = 'tw'
+password = 'tw'
 
 # Kafka configuration
 kafka_broker_address = os.getenv("KAFKA_BROKER_ADDRESS")
@@ -24,7 +32,7 @@ else:
 consumer = KafkaConsumer(
     kafka_topic_opt_request,
     bootstrap_servers=[kafka_broker_address],
-    auto_offset_reset='earliest',  # Start reading at the earliest message if the specified offset is invalid
+    auto_offset_reset='latest',  # Start reading at the earliest message if the specified offset is invalid
     enable_auto_commit=False,  # Automatically commit offsets
     group_id='request-handler-group',  # Consumer group ID
     session_timeout_ms=304999,
@@ -52,8 +60,12 @@ try:
 
         request_partition = message.partition
         request_offset = message.offset
+
         print(
             f"Received message: {message.value} from topic: {message.topic}, partition: {request_partition}, offset: {request_offset}")
+
+        if dao.check_request_id_exists(host, port, user, password, db, request_id):
+            continue
 
         try:
             stock_data = f.download_stock_data(symbol, start_date, end_date)
@@ -74,16 +86,17 @@ try:
             max_draw_down = opt_stats_x['Max. Drawdown [%]']
             sqn = opt_stats_x['SQN']
 
-            message = {
-                'batch_id': batch_id,
-                'request_id': request_id,
-                'symbol': symbol,
-                'start_date': start_date.isoformat(),
-                'end_date': end_date.isoformat(),
-                'profit_target': int(opt_stats_x._strategy.o_profit_target),
-                'stop_limit': int(opt_stats_x._strategy.o_stop_limit),
-                'sleep_after_loss': int(opt_stats_x._strategy.o_sleep_after_loss),
-                'max_days': int(opt_stats_x._strategy.o_max_days),
+            # Data to insert, now as a dictionary
+            data_to_insert = {
+                "batch_id": batch_id,
+                "request_id": request_id,
+                "symbol": symbol,
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "profit_target": int(opt_stats_x._strategy.o_profit_target),
+                "stop_limit": int(opt_stats_x._strategy.o_stop_limit),
+                "sleep_after_loss": int(opt_stats_x._strategy.o_sleep_after_loss),
+                "max_days": int(opt_stats_x._strategy.o_max_days),
                 'exposure_time': exposure_time,
                 'return_pct': return_pct,
                 'buy_and_hold_return_pct': buy_and_hold_return_pct,
@@ -91,19 +104,14 @@ try:
                 'sqn': sqn,
                 'handler_host': hostname,
                 'request_partition': request_partition,
-                'request_offset': request_offset
+                "offset": request_offset
             }
 
-            # Send the message
-            try:
-                producer.send(kafka_topic_opt_response, value=message)
-                producer.flush()
-            except Exception as e:
-                print(f"Failed to send message: {e}")
+            print(data_to_insert)
 
-            print(message)
+            dao.add_opt_trading_parameters(host, port, user, password, db, data_to_insert)
 
-            consumer.commit_async()
+            consumer.commit()
 
         except Exception as e:
             print(e)

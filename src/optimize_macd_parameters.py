@@ -1,11 +1,10 @@
 from datetime import datetime
-from datetime import timedelta
 import moments as f
 from backtesting import Backtest
 import pandas as pd
 import os
 
-ticker = "XLF"
+ticker = "SPY"
 max_stop_limit = 5
 ROUNDING_DIGITS = 4
 CASH = 1000000
