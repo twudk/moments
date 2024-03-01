@@ -54,7 +54,7 @@ if __name__ == '__main__':
     sampling_frequency = 5  # Sample every 5 days
     walk_back_in_days = 30 * 6  # Walk back 6 months
 
-    for ticker in tickers_us_sectors + tickers_us_industries:
+    for ticker in ['SPY']:
         stock_data = f.download_stock_data(
             ticker,
             datetime.strptime(start_date, '%Y-%m-%d').date(),

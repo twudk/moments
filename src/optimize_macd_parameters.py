@@ -1,20 +1,20 @@
-import datetime
+from datetime import datetime
+from datetime import timedelta
 import moments as f
 from backtesting import Backtest
 import pandas as pd
 import os
 
-ticker = "PHO"
-walk_back_in_days = 365 * 0
-total_days_in_range = 365 * 2
+ticker = "XLF"
 max_stop_limit = 5
 ROUNDING_DIGITS = 4
 CASH = 1000000
 
-end_date = datetime.date.today()
+start_date = datetime.strptime('2020-01-01', '%Y-%m-%d').date()
+end_date = datetime.strptime('2024-02-29', '%Y-%m-%d').date()
 
 # Load prices
-prices_df = f.download_stock_data(ticker, end_date - datetime.timedelta(days=total_days_in_range), end_date)
+prices_df = f.download_stock_data(ticker, start_date, end_date)
 
 vol = prices_df['Close'].std() / prices_df['Close'].mean()
 
@@ -46,8 +46,7 @@ price_with_parameters_df['sleep_after_loss'] = price_with_parameters_df['sleep_a
 price_with_parameters_df['max_days'] = price_with_parameters_df['max_days'].round().astype(int)
 
 # Prepare data to back test
-start_date_x, end_date_x = f.get_start_end_date(walk_back_in_days, total_days_in_range)
-stock_data = f.get_subrange_of_days(price_with_parameters_df, start_date_x, end_date_x)
+stock_data = f.get_subrange_of_days(price_with_parameters_df, start_date, end_date)
 
 # Back test
 os.chdir('../report')

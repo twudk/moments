@@ -50,8 +50,10 @@ try:
         start_date = datetime.fromisoformat(message.value['start_date'])
         end_date = datetime.fromisoformat(message.value['end_date'])
 
+        request_partition = message.partition
+        request_offset = message.offset
         print(
-            f"Received message: {message.value} from topic: {message.topic}, partition: {message.partition}, offset: {message.offset}")
+            f"Received message: {message.value} from topic: {message.topic}, partition: {request_partition}, offset: {request_offset}")
 
         try:
             stock_data = f.download_stock_data(symbol, start_date, end_date)
@@ -87,7 +89,9 @@ try:
                 'buy_and_hold_return_pct': buy_and_hold_return_pct,
                 'max_draw_down': max_draw_down,
                 'sqn': sqn,
-                'handler_host': hostname
+                'handler_host': hostname,
+                'request_partition': request_partition,
+                'request_offset': request_offset
             }
 
             # Send the message
