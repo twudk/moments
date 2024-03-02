@@ -5,17 +5,16 @@ import logging
 import moments as f
 from backtesting import Backtest
 
+logging.basicConfig(level=logging.INFO)
+
 # Constants
 TICKER = "SPY"
 MAX_STOP_LIMIT = 5
 CASH = 1_000_000
-START_DATE = "2020-01-01"
+START_DATE = "2015-01-01"
 END_DATE = "2024-02-29"
 PARAMETERS_FILE_TEMPLATE = "../data/input/parameters_v2_{}.csv"
 REPORT_DIRECTORY = "../report"
-
-# Configure logging
-logging.basicConfig(level=logging.INFO)
 
 
 def load_prices(ticker, start_date, end_date):
@@ -54,6 +53,7 @@ def backtest_strategy(stock_data, strategy, cash=CASH):
     """Run backtest on the strategy."""
     os.chdir(REPORT_DIRECTORY)
     backtest = Backtest(stock_data, strategy, cash=cash, exclusive_orders=True, trade_on_close=True)
+
     optimize_on = 'Return [%]'
     logging.info("Optimizing backtest strategy")
     opt_stats_x, heatmap = backtest.optimize(
@@ -64,15 +64,17 @@ def backtest_strategy(stock_data, strategy, cash=CASH):
         maximize=optimize_on,
         return_heatmap=True
     )
-
     macd_threshold = opt_stats_x._strategy.macd_threshold
     skip_trend = opt_stats_x._strategy.skip_trend
 
-    logging.info(f"Optimized Threshold: {macd_threshold}, Skip Trend: {skip_trend}")
+    # macd_threshold = 30
+    # skip_trend = False
 
     stats = backtest.run(n1=19, n2=39, macd_threshold=macd_threshold, skip_trend=skip_trend)
     backtest.plot()
-    return stats
+
+    logging.info(f"Backtesting complete with stats: {stats}")
+    logging.info(f"Optimized Threshold: {macd_threshold}, Skip Trend: {skip_trend}")
 
 
 def main():
@@ -83,8 +85,7 @@ def main():
     parameters_df = preprocess_parameters(parameters_df, MAX_STOP_LIMIT)
     price_with_parameters_df = merge_prices_with_parameters(prices_df, parameters_df, TICKER)
     stock_data = f.get_subrange_of_days(price_with_parameters_df, datetime.strptime(start_date, '%Y-%m-%d').date(), datetime.strptime(end_date, '%Y-%m-%d').date())
-    stats = backtest_strategy(stock_data, f.MyStrategy)
-    logging.info(f"Backtesting complete with stats: {stats}")
+    backtest_strategy(stock_data, f.MyStrategy)
 
 
 if __name__ == "__main__":

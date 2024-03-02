@@ -7,21 +7,20 @@ from kafka import KafkaConsumer, KafkaProducer
 import moments as f
 import dao
 from backtesting import Backtest
+import logging
 
+logging.basicConfig(level=logging.INFO)
 
-# Configuration and setup
-class Config:
-    MYSQL_HOST = os.getenv("MYSQL_ADDRESS")
-    MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))  # Default port if not set
-    MYSQL_DB = os.getenv("MYSQL_DB")
-    MYSQL_USER = 'tw'
-    MYSQL_PASSWORD = 'tw'
-    KAFKA_BROKER_ADDRESS = os.getenv("KAFKA_BROKER_ADDRESS")
-    KAFKA_TOPIC_OPT_REQUEST = 'opt_request'
-    if KAFKA_BROKER_ADDRESS is None:
-        sys.exit("Kafka broker address is empty, set env variable KAFKA_BROKER_ADDRESS")
-
-    HOSTNAME = socket.gethostname()
+MYSQL_HOST = os.getenv("MYSQL_ADDRESS")
+MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))  # Default port if not set
+MYSQL_DB = os.getenv("MYSQL_DB")
+MYSQL_USER = 'tw'
+MYSQL_PASSWORD = 'tw'
+KAFKA_BROKER_ADDRESS = os.getenv("KAFKA_BROKER_ADDRESS")
+KAFKA_TOPIC_OPT_REQUEST = 'opt_request'
+if KAFKA_BROKER_ADDRESS is None:
+    sys.exit("Kafka broker address is empty, set env variable KAFKA_BROKER_ADDRESS")
+HOSTNAME = socket.gethostname()
 
 
 def create_kafka_consumer(broker_address, topic):
@@ -58,7 +57,7 @@ def process_message(message):
     sampling_step = data['sampling_step']
     start_date, end_date = datetime.fromisoformat(data['start_date']), datetime.fromisoformat(data['end_date'])
 
-    if dao.check_request_id_exists(Config.MYSQL_HOST, Config.MYSQL_PORT, Config.MYSQL_USER, Config.MYSQL_PASSWORD, Config.MYSQL_DB, request_id):
+    if dao.check_request_id_exists(MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB, request_id):
         return
 
     try:
@@ -89,23 +88,23 @@ def process_message(message):
             'buy_and_hold_return_pct': opt_stats_x['Buy & Hold Return [%]'],
             'max_draw_down': opt_stats_x['Max. Drawdown [%]'],
             'sqn': opt_stats_x['SQN'],
-            'handler_host': Config.HOSTNAME,
+            'handler_host': HOSTNAME,
             'request_partition': message.partition,
             "offset": message.offset
         }
 
-        dao.add_opt_trading_parameters(Config.MYSQL_HOST, Config.MYSQL_PORT, Config.MYSQL_USER, Config.MYSQL_PASSWORD, Config.MYSQL_DB, data_to_insert)
+        dao.add_opt_trading_parameters(MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB, data_to_insert)
     except Exception as e:
-        print(f"Error processing message {message}: {e}")
+        logging.info(f"Error processing message {message}: {e}")
 
 
 def main():
-    print(f"Kafka broker address: {Config.KAFKA_BROKER_ADDRESS}")
-    consumer = create_kafka_consumer(Config.KAFKA_BROKER_ADDRESS, Config.KAFKA_TOPIC_OPT_REQUEST)
+    logging.info(f"Kafka broker address: {KAFKA_BROKER_ADDRESS}")
+    consumer = create_kafka_consumer(KAFKA_BROKER_ADDRESS, KAFKA_TOPIC_OPT_REQUEST)
     try:
         consume_messages(consumer)
     except KeyboardInterrupt:
-        print("Stopping consumer")
+        logging.error("Stopping consumer")
     finally:
         consumer.close()
 

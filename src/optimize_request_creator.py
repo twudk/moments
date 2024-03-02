@@ -6,7 +6,6 @@ from datetime import datetime, timedelta
 from kafka import KafkaProducer
 import moments as f  # Assuming 'moments' is an application-specific module
 
-# Configure logging
 logging.basicConfig(level=logging.INFO)
 
 # Constants
@@ -49,8 +48,8 @@ def send_request(batch_id: str, request_id: str, symbol: str, start_date: dateti
 if __name__ == '__main__':
     batch_id = f.generate_random_uuid()
 
-    tickers = ["XLF"]  # Example ticker, extend as needed
-    start_date = datetime.strptime('2024-01-01', '%Y-%m-%d').date()
+    tickers = ["XLV", "SPY", "XLF"]  # Example ticker, extend as needed
+    start_date = datetime.strptime('2014-01-01', '%Y-%m-%d').date()
     end_date = datetime.strptime('2024-02-26', '%Y-%m-%d').date()
 
     sampling_frequency = 5
