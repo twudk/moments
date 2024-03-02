@@ -1,11 +1,20 @@
 #!/bin/bash
 
-# Define a list of hosts
-HOSTS="host1.example.com host2.example.com host3.example.com"
+# Prompt the user for the password
+read -sp "Enter root password: " PASSWORD
+echo # Move to a new line
+
+# List of hosts
+hosts=("nano1.twu.dk" "nano2.twu.dk" "nano3.twu.dk" "nano4.twu.dk" "nano5.twu.dk" "nano6.twu.dk" "nano7.twu.dk" "nano8.twu.dk")
+
+# SSH user
+user="root"
 
 # Command to run on each host
-COMMAND="uname -a"
+command="hostname ; cd /home/tw/moments ; sudo docker compose down -v ; sudo docker compose pull; sudo docker compose up -d"
 
-for HOST in $HOSTS; do
-    ssh "$HOST" "$COMMAND"
+# Loop through each host and run the command
+for host in "${hosts[@]}"
+do
+  sshpass -p "$PASSWORD" ssh -o StrictHostKeyChecking=no "$user@$host" "$command"
 done

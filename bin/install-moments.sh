@@ -12,7 +12,9 @@ services:
   moments:
     image: tawu04/moments:latest
     environment:
-      KAFKA_BROKER_ADDRESS: "ws.twu.dk:29092"
+      MYSQL_ADDRESS: "ws.twu.dk"
+      MYSQL_DB: "db"
+      MYSQL_PORT: 3306
 EOF
 
 # Run docker-compose in detached mode
