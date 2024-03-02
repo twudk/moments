@@ -1,123 +1,114 @@
 import sys
 import os
-from datetime import datetime
-from kafka import KafkaConsumer, KafkaProducer
 import json
-import moments as f
-import dao as dao
-from backtesting import Backtest
+from datetime import datetime
 import socket
+from kafka import KafkaConsumer, KafkaProducer
+import moments as f
+import dao
+from backtesting import Backtest
 
-hostname = socket.gethostname()
 
-# Mysql
-host = os.getenv("MYSQL_ADDRESS")
-port = int(os.getenv("MYSQL_PORT"))
-db = os.getenv("MYSQL_DB")
-user = 'tw'
-password = 'tw'
+# Configuration and setup
+class Config:
+    MYSQL_HOST = os.getenv("MYSQL_ADDRESS")
+    MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))  # Default port if not set
+    MYSQL_DB = os.getenv("MYSQL_DB")
+    MYSQL_USER = 'tw'
+    MYSQL_PASSWORD = 'tw'
+    KAFKA_BROKER_ADDRESS = os.getenv("KAFKA_BROKER_ADDRESS")
+    KAFKA_TOPIC_OPT_REQUEST = 'opt_request'
+    if KAFKA_BROKER_ADDRESS is None:
+        sys.exit("Kafka broker address is empty, set env variable KAFKA_BROKER_ADDRESS")
 
-# Kafka configuration
-kafka_broker_address = os.getenv("KAFKA_BROKER_ADDRESS")
-kafka_topic_opt_request = 'opt_request'
-kafka_topic_opt_response = 'opt_response'
+    HOSTNAME = socket.gethostname()
 
-if kafka_broker_address is None:
-    print("Kafka broker address is empty, set env variable KAFKA_BROKER_ADDRESS")
-    sys.exit()
-else:
-    print("Kafka broker address: " + kafka_broker_address)
 
-# Create a Kafka consumer instance
-consumer = KafkaConsumer(
-    kafka_topic_opt_request,
-    bootstrap_servers=[kafka_broker_address],
-    auto_offset_reset='latest',  # Start reading at the earliest message if the specified offset is invalid
-    enable_auto_commit=False,  # Automatically commit offsets
-    group_id='request-handler-group',  # Consumer group ID
-    session_timeout_ms=304999,
-    max_poll_interval_ms=304999,
-    value_deserializer=lambda x: json.loads(x.decode('utf-8'))  # Deserialize the message from JSON
-)
+def create_kafka_consumer(broker_address, topic):
+    return KafkaConsumer(
+        topic,
+        bootstrap_servers=[broker_address],
+        auto_offset_reset='latest',
+        enable_auto_commit=False,
+        group_id='request-handler-group',
+        session_timeout_ms=304999,
+        max_poll_interval_ms=304999,
+        value_deserializer=lambda x: json.loads(x.decode('utf-8'))
+    )
 
-# Create a Kafka producer instance
-producer = KafkaProducer(
-    bootstrap_servers=[kafka_broker_address],
-    value_serializer=lambda v: json.dumps(v).encode('utf-8'),  # Serialize the message to JSON formatted string
-    acks='all'
-)
 
-# Consume messages
-try:
+def create_kafka_producer(broker_address):
+    return KafkaProducer(
+        bootstrap_servers=[broker_address],
+        value_serializer=lambda v: json.dumps(v).encode('utf-8'),
+        acks='all'
+    )
+
+
+def consume_messages(consumer):
     for message in consumer:
-        batch_id = message.value['batch_id']
-        request_id = message.value['request_id']
-        symbol = message.value['symbol']
-        optimize_on = message.value['optimize_on']
-        sampling_step = message.value['sampling_step']
-        start_date = datetime.fromisoformat(message.value['start_date'])
-        end_date = datetime.fromisoformat(message.value['end_date'])
+        process_message(message)
+        consumer.commit()
 
-        request_partition = message.partition
-        request_offset = message.offset
 
-        print(
-            f"Received message: {message.value} from topic: {message.topic}, partition: {request_partition}, offset: {request_offset}")
+def process_message(message):
+    data = message.value
+    batch_id, request_id = data['batch_id'], data['request_id']
+    symbol, optimize_on = data['symbol'], data['optimize_on']
+    sampling_step = data['sampling_step']
+    start_date, end_date = datetime.fromisoformat(data['start_date']), datetime.fromisoformat(data['end_date'])
 
-        if dao.check_request_id_exists(host, port, user, password, db, request_id):
-            continue
+    if dao.check_request_id_exists(Config.MYSQL_HOST, Config.MYSQL_PORT, Config.MYSQL_USER, Config.MYSQL_PASSWORD, Config.MYSQL_DB, request_id):
+        return
 
-        try:
-            stock_data = f.download_stock_data(symbol, start_date, end_date)
-            backtest_x = Backtest(stock_data, f.MyStrategy, cash=1000000, exclusive_orders=True, trade_on_close=True)
+    try:
+        stock_data = f.download_stock_data(symbol, start_date, end_date)
+        backtest_x = Backtest(stock_data, f.MyStrategy, cash=1000000, exclusive_orders=True, trade_on_close=True)
 
-            opt_stats_x, heatmap = backtest_x.optimize(
-                o_profit_target=range(2, 10, sampling_step),
-                o_stop_limit=range(2, 5, sampling_step),
-                o_max_days=range(16, 24, sampling_step),
-                o_sleep_after_loss=range(2, 10, sampling_step),
-                maximize=optimize_on,
-                return_heatmap=True
-            )
+        opt_stats_x, _ = backtest_x.optimize(
+            o_profit_target=range(2, 10, sampling_step),
+            o_stop_limit=range(2, 5, sampling_step),
+            o_max_days=range(16, 24, sampling_step),
+            o_sleep_after_loss=range(2, 10, sampling_step),
+            maximize=optimize_on,
+            return_heatmap=True
+        )
 
-            exposure_time = opt_stats_x['Exposure Time [%]']
-            return_pct = opt_stats_x['Return [%]']
-            buy_and_hold_return_pct = opt_stats_x['Buy & Hold Return [%]']
-            max_draw_down = opt_stats_x['Max. Drawdown [%]']
-            sqn = opt_stats_x['SQN']
+        data_to_insert = {
+            "batch_id": batch_id,
+            "request_id": request_id,
+            "symbol": symbol,
+            "start_date": start_date.isoformat(),
+            "end_date": end_date.isoformat(),
+            "profit_target": int(opt_stats_x._strategy.o_profit_target),
+            "stop_limit": int(opt_stats_x._strategy.o_stop_limit),
+            "sleep_after_loss": int(opt_stats_x._strategy.o_sleep_after_loss),
+            "max_days": int(opt_stats_x._strategy.o_max_days),
+            'exposure_time': opt_stats_x['Exposure Time [%]'],
+            'return_pct': opt_stats_x['Return [%]'],
+            'buy_and_hold_return_pct': opt_stats_x['Buy & Hold Return [%]'],
+            'max_draw_down': opt_stats_x['Max. Drawdown [%]'],
+            'sqn': opt_stats_x['SQN'],
+            'handler_host': Config.HOSTNAME,
+            'request_partition': message.partition,
+            "offset": message.offset
+        }
 
-            # Data to insert, now as a dictionary
-            data_to_insert = {
-                "batch_id": batch_id,
-                "request_id": request_id,
-                "symbol": symbol,
-                "start_date": start_date.isoformat(),
-                "end_date": end_date.isoformat(),
-                "profit_target": int(opt_stats_x._strategy.o_profit_target),
-                "stop_limit": int(opt_stats_x._strategy.o_stop_limit),
-                "sleep_after_loss": int(opt_stats_x._strategy.o_sleep_after_loss),
-                "max_days": int(opt_stats_x._strategy.o_max_days),
-                'exposure_time': exposure_time,
-                'return_pct': return_pct,
-                'buy_and_hold_return_pct': buy_and_hold_return_pct,
-                'max_draw_down': max_draw_down,
-                'sqn': sqn,
-                'handler_host': hostname,
-                'request_partition': request_partition,
-                "offset": request_offset
-            }
+        dao.add_opt_trading_parameters(Config.MYSQL_HOST, Config.MYSQL_PORT, Config.MYSQL_USER, Config.MYSQL_PASSWORD, Config.MYSQL_DB, data_to_insert)
+    except Exception as e:
+        print(f"Error processing message {message}: {e}")
 
-            print(data_to_insert)
 
-            dao.add_opt_trading_parameters(host, port, user, password, db, data_to_insert)
+def main():
+    print(f"Kafka broker address: {Config.KAFKA_BROKER_ADDRESS}")
+    consumer = create_kafka_consumer(Config.KAFKA_BROKER_ADDRESS, Config.KAFKA_TOPIC_OPT_REQUEST)
+    try:
+        consume_messages(consumer)
+    except KeyboardInterrupt:
+        print("Stopping consumer")
+    finally:
+        consumer.close()
 
-            consumer.commit()
 
-        except Exception as e:
-            print(e)
-
-except KeyboardInterrupt:
-    print("Stopping consumer")
-
-# Close the consumer connection
-consumer.close()
+if __name__ == "__main__":
+    main()
