@@ -1,65 +1,50 @@
-import os
-import sys
-import json
 import logging
+import os
+import socket
 from datetime import datetime, timedelta
-from kafka import KafkaProducer
+
+import dao
 import moments as f  # Assuming 'moments' is an application-specific module
 
 logging.basicConfig(level=logging.INFO)
 
 # Constants
-KAFKA_BROKER_ADDRESS = os.getenv("KAFKA_BROKER_ADDRESS")
-KAFKA_TOPIC_OPT_REQUEST = 'opt_request'
-KAFKA_TOPIC_OPT_RESPONSE = 'opt_response'
 
-if not KAFKA_BROKER_ADDRESS:
-    logging.error("Kafka broker address is empty. Set the environment variable KAFKA_BROKER_ADDRESS.")
-    sys.exit(1)
-
-logging.info("Kafka broker address: %s", KAFKA_BROKER_ADDRESS)
-
-# Kafka Producer Configuration
-producer = KafkaProducer(
-    bootstrap_servers=[KAFKA_BROKER_ADDRESS],
-    value_serializer=lambda v: json.dumps(v).encode('utf-8'),
-    acks='all'
-)
-
-
-def send_request(batch_id: str, request_id: str, symbol: str, start_date: datetime, end_date: datetime) -> None:
-    """Sends a request to Kafka topic."""
-    message = {
-        'batch_id': batch_id,
-        'request_id': request_id,
-        'symbol': symbol,
-        'optimize_on': 'SQN',
-        'sampling_step': 1,
-        'start_date': start_date.isoformat(),
-        'end_date': end_date.isoformat()
-    }
-    try:
-        producer.send(KAFKA_TOPIC_OPT_REQUEST, value=message)
-        logging.info(f"Message sent for symbol: {symbol}")
-    except Exception as e:
-        logging.error(f"Failed to send message: {e}")
-
+MYSQL_HOST = os.getenv("MYSQL_ADDRESS")
+MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))  # Default port if not set
+MYSQL_DB = os.getenv("MYSQL_DB")
+MYSQL_USER = 'tw'
+MYSQL_PASSWORD = 'tw'
+HOSTNAME = socket.gethostname()
 
 if __name__ == '__main__':
     batch_id = f.generate_random_uuid()
 
-    tickers = ["XLV", "SPY", "XLF"]  # Example ticker, extend as needed
+    tickers = ["XLV"]  # Example ticker, extend as needed
     start_date = datetime.strptime('2014-01-01', '%Y-%m-%d').date()
     end_date = datetime.strptime('2024-02-26', '%Y-%m-%d').date()
 
     sampling_frequency = 5
     walk_back_in_days = 30 * 6
 
+    data_list = []
+
     for ticker in tickers:
         stock_data = f.download_stock_data(ticker, start_date, end_date)
 
         for sampling_end_date in stock_data.iloc[::sampling_frequency].index.date:
             sampling_start_date = sampling_end_date - timedelta(days=walk_back_in_days)
-            send_request(batch_id, f.generate_random_uuid(), ticker, sampling_start_date, sampling_end_date)
+            data = {
+                'batch_id': batch_id,
+                'request_id': f.generate_random_uuid(),
+                'symbol': ticker,
+                'optimize_on': 'SQN',
+                'sampling_step': 1,  # This should be an integer
+                'start_date': sampling_start_date,  # Date in 'YYYY-MM-DD' format
+                'end_date': sampling_end_date,  # Date in 'YYYY-MM-DD' format
+                'reserved_by': None,  # Optional, can be NULL if not reserved
+                'reserved_until': None  # Optional, DATETIME format 'YYYY-MM-DD HH:MM:SS', can be NULL
+            }
+            data_list.append(data)
 
-    producer.flush()
+    dao.add_opt_req_trading_parameters_bulk(MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB, data_list)
