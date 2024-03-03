@@ -14,4 +14,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 ENV PYTHONPATH "${PYTHONPATH}:/usr/src/app/src"
 
 # Run module1.py when the container launches
-CMD ["python", "./src/optimize_request_handler.py"]
+CMD ["python", "./src/trading_optimization_handler.py"]

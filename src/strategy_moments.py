@@ -1,47 +1,9 @@
-import yfinance as yf
 import datetime
-from typing import Optional, Tuple
+from typing import Tuple
+
 import pandas as pd
 import pandas_ta as ta
 from backtesting import Strategy
-import uuid
-
-
-def generate_random_uuid():
-    # Generate a random UUID (UUID4)
-    random_uuid = uuid.uuid4()
-    return str(random_uuid)
-
-
-def save_to_file(filename, data):
-    with open(filename, 'a') as file:
-        file.write(data + '\n')
-
-
-def download_stock_data(
-        symbol: str, start_date: datetime.date, end_date: datetime.date
-) -> Optional[pd.DataFrame]:
-    """
-    Download historical stock data for a given symbol.
-    Returns a DataFrame or None if an error occurs.
-    """
-    try:
-        price_df = yf.download(symbol, start=start_date, end=end_date)
-        price_df['Open'] = price_df['Open'] + price_df['Adj Close'] - price_df['Close']
-        price_df['High'] = price_df['High'] + price_df['Adj Close'] - price_df['Close']
-        price_df['Low'] = price_df['Low'] + price_df['Adj Close'] - price_df['Close']
-        price_df['Close'] = price_df['Adj Close']
-        return price_df
-    except Exception as e:
-        print(f"Error downloading stock data: {e}")
-        return None
-
-
-def calculate_daily_returns(stock_data: pd.DataFrame) -> pd.Series:
-    """
-    Calculate and return the daily returns from the stock data.
-    """
-    return stock_data["Close"].pct_change()
 
 
 def days_to_target(
@@ -191,33 +153,7 @@ def calculate_last_investment_day_extended(
     return last_investment_days, sleep_days
 
 
-def get_subrange_of_days(
-        stock_data: pd.DataFrame, start: datetime.date, end: datetime.date
-) -> pd.DataFrame:
-    """
-    Returns a subrange of the stock_data DataFrame between the specified start and end dates.
-    """
-    # Convert start and end dates to pandas Timestamp to match DataFrame index
-    start_timestamp = pd.Timestamp(start)
-    end_timestamp = pd.Timestamp(end)
-
-    # Filter the DataFrame for the date range
-    mask = (stock_data.index >= start_timestamp) & (stock_data.index <= end_timestamp)
-    return stock_data.loc[mask]
-
-
-def get_start_end_date(
-        to_date: int, walk_back: int
-) -> Tuple[datetime.date, datetime.date]:
-    """
-    Calculates and returns the start and end dates based on the specified number of days to walk back from today.
-    """
-    end_date = datetime.date.today() - datetime.timedelta(days=to_date)
-    start_date = end_date - datetime.timedelta(days=walk_back)
-    return start_date, end_date
-
-
-class MyStrategy(Strategy):
+class Moments(Strategy):
     o_profit_target: int = None
     o_stop_limit: int = None
     o_max_days: int = None

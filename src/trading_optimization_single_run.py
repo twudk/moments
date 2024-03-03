@@ -5,7 +5,8 @@ from datetime import datetime
 from backtesting import Backtest
 
 # Local application imports
-import moments as f
+import strategy_moments as f
+import util as util
 
 # Constants are capitalized and underscore-separated
 TICKER = "XLV"
@@ -21,14 +22,14 @@ start_date = datetime.strptime(START_DATE, "%Y-%m-%d").date()
 end_date = datetime.strptime(END_DATE, "%Y-%m-%d").date()
 
 # Load stock data using the moments library
-data = f.download_stock_data(TICKER, start_date, end_date)
+data = util.download_and_adjust_stock_data(TICKER, start_date, end_date)
 
 # Assuming get_start_end_date and get_subrange_of_days are correctly implemented in 'moments'
 # Here, we directly use start_date and end_date without additional calculation
-stock_data = f.get_subrange_of_days(data, start_date, end_date)
+stock_data = util.filter_stock_data_in_date_range(data, start_date, end_date)
 
 # Initialize Backtest object
-backtest = Backtest(stock_data, f.MyStrategy, cash=CASH, exclusive_orders=True, trade_on_close=True)
+backtest = Backtest(stock_data, f.Moments, cash=CASH, exclusive_orders=True, trade_on_close=True)
 
 # Optimization with the backtesting library
 opt_stats, heatmap = backtest.optimize(

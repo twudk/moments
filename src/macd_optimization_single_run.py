@@ -2,9 +2,10 @@ from datetime import datetime, timedelta
 import pandas as pd
 import os
 import logging
-import moments as f
+import strategy_moments as f
 from backtesting import Backtest
-import dao
+import trading_optimization_dao as dao
+import util as util
 import socket
 
 logging.basicConfig(level=logging.INFO)
@@ -21,18 +22,10 @@ HOSTNAME = socket.gethostname()
 TICKER = "XLV"
 MAX_STOP_LIMIT = 5
 CASH = 1_000_000
-START_DATE = "2022-01-01"
-END_DATE = "2024-03-03"
+START_DATE = "2015-01-01"
+END_DATE = "2016-03-03"
 PARAMETERS_FILE_TEMPLATE = "../data/input/parameters_v2_{}.csv"
 REPORT_DIRECTORY = "../report"
-
-
-def load_prices(ticker, start_date, end_date):
-    """Load stock prices from moments."""
-    start = datetime.strptime(start_date, "%Y-%m-%d").date()
-    end = datetime.strptime(end_date, "%Y-%m-%d").date()
-    logging.info(f"Loading stock data for {ticker} from {start} to {end}")
-    return f.download_stock_data(ticker, start, end)
 
 
 def preprocess_parameters(parameters_df, max_stop_limit):
@@ -86,15 +79,13 @@ def backtest_strategy(stock_data, strategy, cash=CASH):
 
 
 def main():
-    logging.info("Backtesting process started")
-    start_date, end_date = START_DATE, END_DATE
-    prices_df = load_prices(TICKER, start_date, end_date)
+    start_date = datetime.strptime(START_DATE, '%Y-%m-%d').date()
+    end_date = datetime.strptime(END_DATE, '%Y-%m-%d').date()
+    prices_df = util.download_and_adjust_stock_data(TICKER, start_date, end_date)
     parameters_df = dao.get_trading_parameters_by_symbol_and_date_range(MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB, TICKER, start_date, end_date)
-    # parameters_df = pd.read_csv(PARAMETERS_FILE_TEMPLATE.format(TICKER))
     parameters_df = preprocess_parameters(parameters_df, MAX_STOP_LIMIT)
     price_with_parameters_df = merge_prices_with_parameters(prices_df, parameters_df, TICKER)
-    stock_data = f.get_subrange_of_days(price_with_parameters_df, datetime.strptime(start_date, '%Y-%m-%d').date(), datetime.strptime(end_date, '%Y-%m-%d').date())
-    backtest_strategy(stock_data, f.MyStrategy)
+    backtest_strategy(price_with_parameters_df, f.Moments)
 
 
 if __name__ == "__main__":

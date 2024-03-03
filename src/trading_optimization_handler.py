@@ -5,8 +5,9 @@ import time
 
 from backtesting import Backtest
 
-import dao
-import moments as f
+import trading_optimization_dao as dao
+import strategy_moments as f
+import util as util
 
 logging.basicConfig(level=logging.INFO)
 
@@ -28,8 +29,8 @@ def process_message(data):
     if dao.check_request_id_exists(MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB, request_id):
         return
 
-    stock_data = f.download_stock_data(symbol, start_date, end_date)
-    backtest_x = Backtest(stock_data, f.MyStrategy, cash=1000000, exclusive_orders=True, trade_on_close=True)
+    stock_data = util.download_and_adjust_stock_data(symbol, start_date, end_date)
+    backtest_x = Backtest(stock_data, f.Moments, cash=1000000, exclusive_orders=True, trade_on_close=True)
 
     opt_stats_x, _ = backtest_x.optimize(
         o_profit_target=range(2, 10, sampling_step),

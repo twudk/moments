@@ -3,8 +3,9 @@ import os
 import socket
 from datetime import datetime, timedelta
 
-import dao
-import moments as f  # Assuming 'moments' is an application-specific module
+import trading_optimization_dao as dao
+import strategy_moments as f  # Assuming 'moments' is an application-specific module
+import util as util
 
 logging.basicConfig(level=logging.INFO)
 
@@ -18,7 +19,7 @@ MYSQL_PASSWORD = 'tw'
 HOSTNAME = socket.gethostname()
 
 if __name__ == '__main__':
-    batch_id = f.generate_random_uuid()
+    batch_id = util.generate_uuid()
 
     tickers = ["XLV"]  # Example ticker, extend as needed
     start_date = datetime.strptime('2014-01-01', '%Y-%m-%d').date()
@@ -30,13 +31,13 @@ if __name__ == '__main__':
     data_list = []
 
     for ticker in tickers:
-        stock_data = f.download_stock_data(ticker, start_date, end_date)
+        stock_data = util.download_and_adjust_stock_data(ticker, start_date, end_date)
 
         for sampling_end_date in stock_data.iloc[::sampling_frequency].index.date:
             sampling_start_date = sampling_end_date - timedelta(days=walk_back_in_days)
             data = {
                 'batch_id': batch_id,
-                'request_id': f.generate_random_uuid(),
+                'request_id': util.generate_uuid(),
                 'symbol': ticker,
                 'optimize_on': 'SQN',
                 'sampling_step': 1,  # This should be an integer
