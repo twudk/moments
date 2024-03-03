@@ -1,29 +1,41 @@
-import datetime
-import moments as f
+# Standard library imports
+from datetime import datetime
+
+# Third-party library imports
 from backtesting import Backtest
 
-optimize_on = 'SQN'
-sample_step = 1
-ticker = "SPY"
-end_date = datetime.date.today()
-duration = datetime.timedelta(days=365 * 4)
+# Local application imports
+import moments as f
 
-ROUNDING_DIGITS = 4
-CASH = 1000000
+# Constants are capitalized and underscore-separated
+TICKER = "XLV"
+CASH = 1_000_000
+START_DATE = "2022-01-01"
+END_DATE = "2024-03-03"
+OPTIMIZE_ON = 'SQN'
+SAMPLE_STEP = 1
+ROUNDING_DIGITS = 4  # Note: This constant is defined but not used in the snippet provided
 
-# Load prices
-data = f.download_stock_data(ticker, end_date - duration, end_date)
+# Convert string dates to datetime objects
+start_date = datetime.strptime(START_DATE, "%Y-%m-%d").date()
+end_date = datetime.strptime(END_DATE, "%Y-%m-%d").date()
 
-start_date_x, end_date_x = f.get_start_end_date(365 * 0, 365 * 2)
-stock_data = f.get_subrange_of_days(data, start_date_x, end_date_x)
+# Load stock data using the moments library
+data = f.download_stock_data(TICKER, start_date, end_date)
 
-backtest_x = Backtest(stock_data, f.MyStrategy, cash=CASH, exclusive_orders=True, trade_on_close=True)
+# Assuming get_start_end_date and get_subrange_of_days are correctly implemented in 'moments'
+# Here, we directly use start_date and end_date without additional calculation
+stock_data = f.get_subrange_of_days(data, start_date, end_date)
 
-opt_stats_x, heatmap = backtest_x.optimize(
-    o_profit_target=range(2, 10, sample_step),
-    o_stop_limit=range(2, 10, sample_step),
-    o_max_days=range(16, 24, sample_step),
-    o_sleep_after_loss=range(0, 10, sample_step),
-    maximize=optimize_on,
+# Initialize Backtest object
+backtest = Backtest(stock_data, f.MyStrategy, cash=CASH, exclusive_orders=True, trade_on_close=True)
+
+# Optimization with the backtesting library
+opt_stats, heatmap = backtest.optimize(
+    o_profit_target=range(2, 10, SAMPLE_STEP),
+    o_stop_limit=range(2, 10, SAMPLE_STEP),
+    o_max_days=range(16, 24, SAMPLE_STEP),
+    o_sleep_after_loss=range(0, 10, SAMPLE_STEP),
+    maximize=OPTIMIZE_ON,
     return_heatmap=True
 )

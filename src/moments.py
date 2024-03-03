@@ -47,8 +47,8 @@ def calculate_daily_returns(stock_data: pd.DataFrame) -> pd.Series:
 def days_to_target(
         stock_data: pd.DataFrame,
         start_index: int,
-        o_target_profit: float,
-        o_std_loss_limit: float,
+        o_target_profit: int,
+        o_std_loss_limit: int,
         o_max_days: int,
 ) -> Tuple[int, float, float, datetime.date, bool]:
     """
@@ -101,8 +101,8 @@ def days_to_target(
 
 def calculate_target_days(
         stock_data: pd.DataFrame,
-        o_target_profit: float,
-        o_std_loss_limit: float,
+        o_target_profit: int,
+        o_std_loss_limit: int,
         o_max_days: int,
 ) -> pd.DataFrame:
     """
@@ -156,8 +156,8 @@ def calculate_target_days(
 
 def calculate_last_investment_day_extended(
         stock_data: pd.DataFrame,
-        o_profit_target: float,
-        o_stop_limit: float,
+        o_profit_target: int,
+        o_stop_limit: int,
         o_max_days: int,
         o_sleep_after_loss: int,
 ) -> Tuple[set, set]:
@@ -218,10 +218,10 @@ def get_start_end_date(
 
 
 class MyStrategy(Strategy):
-    o_profit_target = None
-    o_stop_limit = None
-    o_max_days = None
-    o_sleep_after_loss = None
+    o_profit_target: int = None
+    o_stop_limit: int = None
+    o_max_days: int = None
+    o_sleep_after_loss: int = None
 
     days_elapse = 0
     days_held = 0

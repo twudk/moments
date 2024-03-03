@@ -21,8 +21,8 @@ HOSTNAME = socket.gethostname()
 TICKER = "XLV"
 MAX_STOP_LIMIT = 5
 CASH = 1_000_000
-START_DATE = "2015-01-01"
-END_DATE = "2024-02-29"
+START_DATE = "2022-01-01"
+END_DATE = "2024-03-03"
 PARAMETERS_FILE_TEMPLATE = "../data/input/parameters_v2_{}.csv"
 REPORT_DIRECTORY = "../report"
 
@@ -53,6 +53,7 @@ def merge_prices_with_parameters(prices_df, parameters_df, ticker):
     parameters_filtered_df = parameters_df[parameters_df['symbol'] == ticker]
     parameters_filtered_df = (parameters_filtered_df.dropna(subset=['profit_target'])
                               .drop_duplicates(subset=['batch_id', 'request_id'], keep='first'))
+    parameters_filtered_df['end_date'] = pd.to_datetime(parameters_filtered_df['end_date'])
     price_with_parameters_df = pd.merge(prices_df, parameters_filtered_df, left_on='Date', right_on='end_date', how='left')
     price_with_parameters_df.sort_values(by='Date', inplace=True)
     price_with_parameters_df.fillna(method='ffill', inplace=True)
@@ -76,9 +77,6 @@ def backtest_strategy(stock_data, strategy, cash=CASH):
     )
     macd_threshold = opt_stats_x._strategy.macd_threshold
     skip_trend = opt_stats_x._strategy.skip_trend
-
-    # macd_threshold = 10
-    # skip_trend = False
 
     stats = backtest.run(n1=19, n2=39, macd_threshold=macd_threshold, skip_trend=skip_trend)
     backtest.plot()
