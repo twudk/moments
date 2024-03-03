@@ -1,4 +1,5 @@
 import pymysql
+import pandas as pd
 
 
 def add_opt_trading_parameters(host, port, user, password, db, data):
@@ -197,5 +198,60 @@ def upd_status_opt_req_trading_parameter(host, port, user, password, db, row_id,
             print(f"Status updated to '{new_status}' for ID {row_id}.")
     except Exception as e:
         print(f"An error occurred: {e}")
+    finally:
+        connection.close()
+
+
+def get_trading_parameters_by_symbol_and_date_range(host, port, user, password, db, symbol, start_date, end_date):
+    """
+    Retrieves trading parameters for a given symbol and date range, selecting one row per end_date
+    with the largest id.
+
+    Parameters:
+    - host: Database host address
+    - port: Database port
+    - user: Database user
+    - password: Database password
+    - db: Database name
+    - symbol: The trading symbol to filter by
+    - start_date: The start of the date range (inclusive)
+    - end_date: The end of the date range (inclusive)
+
+    Returns:
+    - A pandas DataFrame containing the filtered rows.
+    """
+    # Connect to the database
+    connection = pymysql.connect(host=host, port=port, user=user, password=password, db=db)
+    try:
+        with connection.cursor() as cursor:
+            # SQL query to retrieve the data
+            sql = """
+            SELECT 
+                *
+            FROM
+                opt_trading_parameters
+            WHERE
+                id IN ((SELECT 
+                        MAX(id)
+                    FROM
+                        opt_trading_parameters
+                    WHERE
+                        symbol = %s AND end_date BETWEEN %s AND %s
+                    GROUP BY end_date))
+            """
+
+            # Execute the SQL query
+            cursor.execute(sql, (symbol, start_date, end_date))
+
+            # Fetch all rows
+            rows = cursor.fetchall()
+
+            # Assuming you know the column names
+            columns = [desc[0] for desc in cursor.description]
+
+            # Convert to pandas DataFrame
+            df = pd.DataFrame(rows, columns=columns)
+
+            return df
     finally:
         connection.close()

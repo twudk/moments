@@ -4,11 +4,21 @@ import os
 import logging
 import moments as f
 from backtesting import Backtest
+import dao
+import socket
 
 logging.basicConfig(level=logging.INFO)
 
+MYSQL_HOST = os.getenv("MYSQL_ADDRESS")
+MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))  # Default port if not set
+MYSQL_DB = os.getenv("MYSQL_DB")
+MYSQL_USER = 'tw'
+MYSQL_PASSWORD = 'tw'
+
+HOSTNAME = socket.gethostname()
+
 # Constants
-TICKER = "SPY"
+TICKER = "XLV"
 MAX_STOP_LIMIT = 5
 CASH = 1_000_000
 START_DATE = "2015-01-01"
@@ -46,7 +56,7 @@ def merge_prices_with_parameters(prices_df, parameters_df, ticker):
     price_with_parameters_df = pd.merge(prices_df, parameters_filtered_df, left_on='Date', right_on='end_date', how='left')
     price_with_parameters_df.sort_values(by='Date', inplace=True)
     price_with_parameters_df.fillna(method='ffill', inplace=True)
-    return price_with_parameters_df.set_index('Date').dropna()
+    return price_with_parameters_df.set_index('Date').dropna(subset=['profit_target'])
 
 
 def backtest_strategy(stock_data, strategy, cash=CASH):
@@ -67,7 +77,7 @@ def backtest_strategy(stock_data, strategy, cash=CASH):
     macd_threshold = opt_stats_x._strategy.macd_threshold
     skip_trend = opt_stats_x._strategy.skip_trend
 
-    # macd_threshold = 30
+    # macd_threshold = 10
     # skip_trend = False
 
     stats = backtest.run(n1=19, n2=39, macd_threshold=macd_threshold, skip_trend=skip_trend)
@@ -81,7 +91,8 @@ def main():
     logging.info("Backtesting process started")
     start_date, end_date = START_DATE, END_DATE
     prices_df = load_prices(TICKER, start_date, end_date)
-    parameters_df = pd.read_csv(PARAMETERS_FILE_TEMPLATE.format(TICKER))
+    parameters_df = dao.get_trading_parameters_by_symbol_and_date_range(MYSQL_HOST, MYSQL_PORT, MYSQL_USER, MYSQL_PASSWORD, MYSQL_DB, TICKER, start_date, end_date)
+    # parameters_df = pd.read_csv(PARAMETERS_FILE_TEMPLATE.format(TICKER))
     parameters_df = preprocess_parameters(parameters_df, MAX_STOP_LIMIT)
     price_with_parameters_df = merge_prices_with_parameters(prices_df, parameters_df, TICKER)
     stock_data = f.get_subrange_of_days(price_with_parameters_df, datetime.strptime(start_date, '%Y-%m-%d').date(), datetime.strptime(end_date, '%Y-%m-%d').date())

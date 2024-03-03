@@ -21,10 +21,10 @@ if __name__ == '__main__':
     batch_id = f.generate_random_uuid()
 
     tickers = ["XLV"]  # Example ticker, extend as needed
-    start_date = datetime.strptime('2014-01-01', '%Y-%m-%d').date()
-    end_date = datetime.strptime('2024-02-26', '%Y-%m-%d').date()
+    start_date = datetime.strptime('2020-01-01', '%Y-%m-%d').date()
+    end_date = datetime.strptime('2024-03-03', '%Y-%m-%d').date()
 
-    sampling_frequency = 5
+    sampling_frequency = 1
     walk_back_in_days = 30 * 6
 
     data_list = []
