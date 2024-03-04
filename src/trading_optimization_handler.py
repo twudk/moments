@@ -2,6 +2,7 @@ import logging
 import os
 import socket
 import time
+import math
 
 from backtesting import Backtest
 
@@ -32,7 +33,7 @@ def process_message(data):
     stock_data = util.download_and_adjust_stock_data(symbol, start_date, end_date)
     backtest_x = Backtest(stock_data, f.Moments, cash=1000000, exclusive_orders=True, trade_on_close=True)
 
-    opt_stats_x, _ = backtest_x.optimize(
+    opt_stats, _ = backtest_x.optimize(
         o_profit_target=range(2, 10, sampling_step),
         o_stop_limit=range(2, 5, sampling_step),
         o_max_days=range(16, 24, sampling_step),
@@ -47,15 +48,15 @@ def process_message(data):
         "symbol": symbol,
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
-        "profit_target": int(opt_stats_x._strategy.o_profit_target),
-        "stop_limit": int(opt_stats_x._strategy.o_stop_limit),
-        "sleep_after_loss": int(opt_stats_x._strategy.o_sleep_after_loss),
-        "max_days": int(opt_stats_x._strategy.o_max_days),
-        'exposure_time': opt_stats_x['Exposure Time [%]'],
-        'return_pct': opt_stats_x['Return [%]'],
-        'buy_and_hold_return_pct': opt_stats_x['Buy & Hold Return [%]'],
-        'max_draw_down': opt_stats_x['Max. Drawdown [%]'],
-        'sqn': opt_stats_x['SQN'],
+        "profit_target": int(opt_stats._strategy.o_profit_target),
+        "stop_limit": int(opt_stats._strategy.o_stop_limit),
+        "sleep_after_loss": int(opt_stats._strategy.o_sleep_after_loss),
+        "max_days": int(opt_stats._strategy.o_max_days),
+        'exposure_time': None if math.isnan(opt_stats['Exposure Time [%]']) else opt_stats['Exposure Time [%]'],
+        'return_pct': None if math.isnan(opt_stats['Return [%]']) else opt_stats['Return [%]'],
+        'buy_and_hold_return_pct': None if math.isnan(opt_stats['Buy & Hold Return [%]']) else opt_stats['Buy & Hold Return [%]'],
+        'max_draw_down': None if math.isnan(opt_stats['Max. Drawdown [%]']) else opt_stats['Max. Drawdown [%]'],
+        'sqn': None if math.isnan(opt_stats['SQN']) else opt_stats['SQN'],
         'handler_host': HOSTNAME,
     }
 

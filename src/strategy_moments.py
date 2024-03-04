@@ -165,10 +165,10 @@ class Moments(Strategy):
     continue_loss = None
     entry_price = None
 
+    macd_threshold = None
     skip_trend = True
     n1 = None
     n2 = None
-    macd_threshold = None
     up_trend_macd = None
 
     trading_start_date = datetime.date.today()
@@ -176,7 +176,7 @@ class Moments(Strategy):
     def init(self):
         super().init()
 
-        if not self.skip_trend:
+        if not self.skip_trend or self.skip_trend is None:
             self.macd = self.I(ta.macd, pd.Series(self.data.Close), self.n1, self.n2)
 
         self.days_elapse = 0
@@ -210,8 +210,12 @@ class Moments(Strategy):
 
         close = self.data.Close[-1]
 
-        if not self.skip_trend:
-            if self.macd[1][-1] > self.macd_threshold / 100:
+        threshold = self.macd_threshold / 100 if self.macd_threshold is not None \
+            else self.data.macd_threshold[-1] / 100 if 'macd_threshold' in self.data.df.columns \
+            else None
+
+        if self.skip_trend is None or (not self.skip_trend):
+            if self.macd[1][-1] > threshold:
                 self.up_trend_macd = True
             else:
                 self.up_trend_macd = False

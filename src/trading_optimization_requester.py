@@ -4,7 +4,6 @@ import socket
 from datetime import datetime, timedelta
 
 import trading_optimization_dao as dao
-import strategy_moments as f  # Assuming 'moments' is an application-specific module
 import util as util
 
 logging.basicConfig(level=logging.INFO)
@@ -21,9 +20,9 @@ HOSTNAME = socket.gethostname()
 if __name__ == '__main__':
     batch_id = util.generate_uuid()
 
-    tickers = ["XLV"]  # Example ticker, extend as needed
+    tickers = ["EDEN"]  # Example ticker, extend as needed
     start_date = datetime.strptime('2014-01-01', '%Y-%m-%d').date()
-    end_date = datetime.strptime('2020-01-01', '%Y-%m-%d').date()
+    end_date = datetime.strptime('2024-03-03', '%Y-%m-%d').date()
 
     sampling_frequency = 1
     walk_back_in_days = 30 * 6
