@@ -33,7 +33,7 @@ def process_message(data):
     stock_data = util.download_and_adjust_stock_data(symbol, start_date, end_date)
     backtest_x = Backtest(stock_data, f.Moments, cash=1000000, exclusive_orders=True, trade_on_close=True)
 
-    opt_stats, _ = backtest_x.optimize(
+    opt_stats, heatmap = backtest_x.optimize(
         o_profit_target=range(2, 10, sampling_step),
         o_stop_limit=range(2, 5, sampling_step),
         o_max_days=range(16, 24, sampling_step),
@@ -42,16 +42,20 @@ def process_message(data):
         return_heatmap=True
     )
 
+    result_df = heatmap.reset_index()
+    max_val = result_df['SQN'].max()
+    top_result = result_df[result_df['SQN'] == max_val].sort_values(by='o_stop_limit', ascending=True).iloc[0]
+
     data_to_insert = {
         "batch_id": batch_id,
         "request_id": request_id,
         "symbol": symbol,
         "start_date": start_date.isoformat(),
         "end_date": end_date.isoformat(),
-        "profit_target": int(opt_stats._strategy.o_profit_target),
-        "stop_limit": int(opt_stats._strategy.o_stop_limit),
-        "sleep_after_loss": int(opt_stats._strategy.o_sleep_after_loss),
-        "max_days": int(opt_stats._strategy.o_max_days),
+        "profit_target": int(top_result['o_profit_target']),
+        "stop_limit": int(top_result['o_stop_limit']),
+        "sleep_after_loss": int(top_result['o_sleep_after_loss']),
+        "max_days": int(top_result['o_max_days']),
         'exposure_time': None if math.isnan(opt_stats['Exposure Time [%]']) else opt_stats['Exposure Time [%]'],
         'return_pct': None if math.isnan(opt_stats['Return [%]']) else opt_stats['Return [%]'],
         'buy_and_hold_return_pct': None if math.isnan(opt_stats['Buy & Hold Return [%]']) else opt_stats['Buy & Hold Return [%]'],

@@ -14,7 +14,7 @@ CASH = 1_000_000
 START_DATE = "2022-01-01"
 END_DATE = "2024-03-03"
 OPTIMIZE_ON = 'SQN'
-SAMPLE_STEP = 1
+SAMPLE_STEP = 5
 ROUNDING_DIGITS = 4  # Note: This constant is defined but not used in the snippet provided
 
 # Convert string dates to datetime objects
@@ -40,3 +40,6 @@ opt_stats, heatmap = backtest.optimize(
     maximize=OPTIMIZE_ON,
     return_heatmap=True
 )
+result_df = heatmap.reset_index()
+max_val = result_df['SQN'].max()
+top = result_df[result_df['SQN'] == max_val].sort_values(by='o_stop_limit', ascending=True).iloc[0]

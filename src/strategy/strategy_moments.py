@@ -17,7 +17,6 @@ def days_to_target(
     Calculate the number of days until the stock reaches the target profit or loss limit,
     up to a maximum of max_days. Also returns the stock price and the last day of investment on that day.
     """
-    start_price = stock_data.iloc[start_index]["Close"]
 
     r_max_days = None
     r_final_return = None
@@ -29,7 +28,6 @@ def days_to_target(
         index_i = start_index + i
         current_price = stock_data.iloc[index_i]["Close"]
         current_date = stock_data.index[index_i]
-        accumulated_return = (current_price - start_price) / start_price
 
         current_target_profit = o_target_profit / 100 if o_target_profit is not None \
             else stock_data.iloc[index_i]["profit_target"] / 100 if "profit_target" in stock_data.columns \
@@ -40,6 +38,14 @@ def days_to_target(
         current_max_days = o_max_days if o_max_days is not None \
             else stock_data.iloc[index_i]["max_days"] if "max_days" in stock_data.columns \
             else None
+
+        if current_max_days is None:
+            start_price = stock_data.iloc[start_index]["Close"]
+            accumulated_return = (current_price - start_price) / start_price
+        else:
+            cycle_start_idx = max(index_i - current_max_days, start_index)
+            cycle_start_price = stock_data.iloc[cycle_start_idx]["Close"]
+            accumulated_return = (current_price - cycle_start_price) / cycle_start_price
 
         if current_target_profit is None or current_stop_limit is None or current_max_days is None:
             return i, accumulated_return, current_price, current_date, False
@@ -208,12 +214,12 @@ class Moments(Strategy):
     def next(self):
         super().next()
 
-        close = self.data.Close[-1]
-
+        # Calculate MACD threshold
         threshold = self.macd_threshold / 100 if self.macd_threshold is not None \
             else self.data.macd_threshold[-1] / 100 if 'macd_threshold' in self.data.df.columns \
             else None
 
+        # Load skip_trend parameter
         if self.skip_trend is None or (not self.skip_trend):
             if self.macd[1][-1] > threshold:
                 self.up_trend_macd = True
@@ -221,17 +227,8 @@ class Moments(Strategy):
                 self.up_trend_macd = False
 
         self.days_elapse = self.days_elapse + 1
-        current_price = close
-        current_holding_pl = (
-            (current_price - self.entry_price) / self.entry_price
-            if current_price is not None and self.entry_price
-            else None
-        )
-        current_date = self.data.index[-1].date()
-        current_date_str = str(current_date)
 
-        # print(current_date_str)
-
+        # Load the trading parameters
         target_profit = self.o_profit_target / 100 if self.o_profit_target is not None \
             else self.data.profit_target[-1] / 100 if 'profit_target' in self.data.df.columns \
             else None
@@ -241,12 +238,29 @@ class Moments(Strategy):
         max_days = self.o_max_days if self.o_max_days is not None \
             else self.data.max_days[-1] if 'max_days' in self.data.df.columns \
             else None
-
         if target_profit is None or stop_limit is None or max_days is None:
             return
 
+        # Identify the date and price
+        current_date = self.data.index[-1].date()
+        current_date_str = str(current_date)
+        current_price = self.data.Close[-1]
+
         if self.position:
             # print(f'''{current_date} {target_profit} {stop_limit} {max_days} {current_holding_pl}''')
+            # Calculate Accumulated PnL
+            if max_days is None:
+                current_holding_pl = (
+                    (current_price - self.entry_price) / self.entry_price
+                    if current_price is not None and self.entry_price
+                    else None
+                )
+            else:
+                trade_offset = -self.days_held - 1
+                cycle_start_offset = max(trade_offset, -max_days)
+                cycle_start_price = self.data.Close[cycle_start_offset]
+                current_holding_pl = (current_price - cycle_start_price) / cycle_start_price if cycle_start_price is not None and current_price is not None else None
+
             if current_holding_pl <= stop_limit:
                 # print(f'''exit due to max loss at {current_date}: {self.entry_price}
                 #     -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
@@ -255,7 +269,7 @@ class Moments(Strategy):
                 self.days_held = 0
                 return
             elif (
-                    self.days_held > max_days
+                    self.days_held >= max_days
                     or self.position.pl_pct >= target_profit
             ) and (current_date_str in self.last_investment_day
                    or current_date_str in self.continue_loss):
@@ -271,7 +285,7 @@ class Moments(Strategy):
             if (
                     (self.continue_loss is None or (current_date_str not in self.continue_loss))
                     and (self.last_investment_day is None or (current_date_str not in self.last_investment_day))
-                    and self.days_elapse > max_days + 5
+                    and self.days_elapse > max_days
                     and (self.up_trend_macd or self.skip_trend)
             ):
                 # print(f'''buy at {current_date}''')

@@ -22,10 +22,10 @@ MYSQL_PASSWORD = 'tw'
 HOSTNAME = socket.gethostname()
 
 # Constants
-TICKER = "XLV"
+TICKER = "SPY"
 MAX_STOP_LIMIT = 5
 CASH = 1_000_000
-START_DATE = "2015-01-01"
+START_DATE = "2016-01-01"
 END_DATE = "2024-03-01"
 REPORT_DIRECTORY = "../report"
 
