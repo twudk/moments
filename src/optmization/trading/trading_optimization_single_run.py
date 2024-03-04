@@ -4,9 +4,9 @@ from datetime import datetime
 # Third-party library imports
 from backtesting import Backtest
 
+import util.util as util
 # Local application imports
-import strategy_moments as f
-import util as util
+from strategy import strategy_moments as f
 
 # Constants are capitalized and underscore-separated
 TICKER = "XLV"

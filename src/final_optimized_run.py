@@ -1,13 +1,15 @@
-from datetime import datetime, timedelta
-import pandas as pd
-import os
 import logging
-import strategy_moments as f
-from backtesting import Backtest
-import macd_optimization_dao as dao_macd
-import trading_optimization_dao as dao_trading
-import util as util
+import os
 import socket
+from datetime import datetime, timedelta
+
+import pandas as pd
+from backtesting import Backtest
+
+import util.util as util
+from optmization.macd import macd_optimization_dao as dao_macd
+from optmization.trading import trading_optimization_dao as dao_trading
+from strategy import strategy_moments as f
 
 logging.basicConfig(level=logging.INFO)
 

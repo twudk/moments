@@ -4,7 +4,7 @@ import socket
 from datetime import datetime, timedelta
 
 import trading_optimization_dao as dao
-import util as util
+import util.util as util
 
 logging.basicConfig(level=logging.INFO)
 

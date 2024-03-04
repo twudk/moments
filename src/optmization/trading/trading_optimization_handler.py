@@ -1,14 +1,14 @@
 import logging
+import math
 import os
 import socket
 import time
-import math
 
 from backtesting import Backtest
 
 import trading_optimization_dao as dao
-import strategy_moments as f
-import util as util
+import util.util as util
+from strategy import strategy_moments as f
 
 logging.basicConfig(level=logging.INFO)
 

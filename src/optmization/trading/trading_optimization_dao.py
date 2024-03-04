@@ -1,5 +1,5 @@
-import pymysql
 import pandas as pd
+import pymysql
 
 
 def add_opt_trading_parameters(host, port, user, password, db, data):
