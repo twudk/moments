@@ -7,7 +7,7 @@ import pandas as pd
 from backtesting import Backtest
 
 import util.util as util
-from optmization.trading import trading_optimization_dao as dao
+from optimization.trading import trading_optimization_dao as dao
 from strategy import strategy_moments as f
 
 logging.basicConfig(level=logging.INFO)

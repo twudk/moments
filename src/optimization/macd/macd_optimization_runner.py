@@ -9,7 +9,7 @@ from backtesting import Backtest
 
 import macd_optimization_dao as dao_macd
 import util.util as util
-from optmization.trading import trading_optimization_dao as dao_trading
+from optimization.trading import trading_optimization_dao as dao_trading
 from strategy import strategy_moments as f
 
 logging.basicConfig(level=logging.INFO)

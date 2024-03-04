@@ -7,8 +7,8 @@ import pandas as pd
 from backtesting import Backtest
 
 import util.util as util
-from optmization.macd import macd_optimization_dao as dao_macd
-from optmization.trading import trading_optimization_dao as dao_trading
+from optimization.macd import macd_optimization_dao as dao_macd
+from optimization.trading import trading_optimization_dao as dao_trading
 from strategy import strategy_moments as f
 
 logging.basicConfig(level=logging.INFO)
