@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime, timedelta
 from typing import Tuple
 
 import pandas as pd
@@ -170,14 +170,13 @@ class Moments(Strategy):
     last_investment_day = None
     continue_loss = None
     entry_price = None
+    skip_days = set()
 
     macd_threshold = None
     skip_trend = True
     n1 = None
     n2 = None
     up_trend_macd = None
-
-    trading_start_date = datetime.date.today()
 
     def init(self):
         super().init()
@@ -190,6 +189,7 @@ class Moments(Strategy):
         self.last_investment_day = None
         self.continue_loss = None
         self.entry_price = None
+        self.skip_days = set()
 
         if self.data.df is None:
             return
@@ -238,6 +238,9 @@ class Moments(Strategy):
         max_days = self.o_max_days if self.o_max_days is not None \
             else self.data.max_days[-1] if 'max_days' in self.data.df.columns \
             else None
+        sleep_after_loss = self.o_max_days if self.o_sleep_after_loss is not None \
+            else self.data.max_days[-1] if 'sleep_after_loss' in self.data.df.columns \
+            else None
         if target_profit is None or stop_limit is None or max_days is None:
             return
 
@@ -267,12 +270,16 @@ class Moments(Strategy):
                 self.position.close()
                 self.entry_price = None
                 self.days_held = 0
+                dates_to_skip = [str(current_date + timedelta(days=i)) for i in range(1, sleep_after_loss + 1)]  # Generate the next n dates
+                self.skip_days.update(dates_to_skip)
                 return
             elif (
                     self.days_held >= max_days
                     or self.position.pl_pct >= target_profit
             ) and (current_date_str in self.last_investment_day
-                   or current_date_str in self.continue_loss):
+                   or current_date_str in self.continue_loss
+                   or current_date_str in self.skip_days
+            ):
                 # print(f'''exit due to max days at {current_date}: {self.entry_price}
                 #     -> {current_price} = {current_holding_pl} pl_pct={self.position.pl_pct} stop_limit={stop_limit}''')
                 self.position.close()
@@ -285,6 +292,7 @@ class Moments(Strategy):
             if (
                     (self.continue_loss is None or (current_date_str not in self.continue_loss))
                     and (self.last_investment_day is None or (current_date_str not in self.last_investment_day))
+                    and (self.skip_days is None or (current_date_str not in self.skip_days))
                     and self.days_elapse > max_days
                     and (self.up_trend_macd or self.skip_trend)
             ):
