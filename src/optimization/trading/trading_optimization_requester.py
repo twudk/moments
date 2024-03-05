@@ -8,8 +8,6 @@ import util.util as util
 
 logging.basicConfig(level=logging.INFO)
 
-# Constants
-
 MYSQL_HOST = os.getenv("MYSQL_ADDRESS")
 MYSQL_PORT = int(os.getenv("MYSQL_PORT", 3306))  # Default port if not set
 MYSQL_DB = os.getenv("MYSQL_DB")
@@ -20,9 +18,9 @@ HOSTNAME = socket.gethostname()
 if __name__ == '__main__':
     batch_id = util.generate_uuid()
 
-    tickers = ["EDEN"]  # Example ticker, extend as needed
+    tickers = ["XLK"]  # Example ticker, extend as needed
     start_date = datetime.strptime('2014-01-01', '%Y-%m-%d').date()
-    end_date = datetime.strptime('2024-03-03', '%Y-%m-%d').date()
+    end_date = datetime.strptime('2024-03-05', '%Y-%m-%d').date()
 
     sampling_frequency = 1
     walk_back_in_days = 30 * 6

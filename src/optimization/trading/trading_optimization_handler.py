@@ -23,7 +23,7 @@ HOSTNAME = socket.gethostname()
 
 def process_message(data):
     batch_id, request_id = data['batch_id'], data['request_id']
-    symbol, optimize_on = data['symbol'], data['optimize_on']
+    symbol, optimize_on = data['symbol'], 'SQN'  # For now only optimize for SQN
     sampling_step = data['sampling_step']
     start_date, end_date = data['start_date'], data['end_date']
 
@@ -43,8 +43,8 @@ def process_message(data):
     )
 
     result_df = heatmap.reset_index()
-    max_val = result_df['SQN'].max()
-    top_result = result_df[result_df['SQN'] == max_val].sort_values(by='o_stop_limit', ascending=True).iloc[0]
+    max_val = result_df[optimize_on].max()
+    top_result = result_df[result_df[optimize_on] == max_val].sort_values(by='o_stop_limit', ascending=True).iloc[0]
 
     data_to_insert = {
         "batch_id": batch_id,
